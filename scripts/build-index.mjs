@@ -16,7 +16,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DATA_DIR = path.join(ROOT, 'web', 'public', 'data');
+
+/** 默认 web/public/data；带 --data-root 可以指向别处（测试或投稿流程用） */
+const cliArgs = process.argv.slice(2);
+const dataRootFlag = cliArgs.indexOf('--data-root');
+const DATA_DIR = path.resolve(
+  ROOT,
+  dataRootFlag >= 0 && cliArgs[dataRootFlag + 1]
+    ? cliArgs[dataRootFlag + 1]
+    : path.join('web', 'public', 'data'),
+);
 const MONTH_DIR = path.join(DATA_DIR, 'months');
 
 /** 每个榜单保留前几名 */

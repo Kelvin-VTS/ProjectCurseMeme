@@ -36,11 +36,13 @@ jobs:
         env:
           # 项目站点的子路径，直接取仓库名，不用手改
           VITE_BASE: /${{ github.event.repository.name }}/
-          # 媒体与数据默认跟着产物一起发布（当前占位素材在 web/public 内）。
-          # 等真实素材迁到仓库根目录的 media/ 之后，改成：
-          #   VITE_MEDIA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/main
-          #   VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/main/web/public/data
-          # 那样新增内容提交后刷新即生效，不必等 Pages 重新部署。
+          # 媒体放在仓库根 media/，不进 Pages 产物，否则几百 MB 素材会顶到
+          # 「已发布站点 ≤1GB」的天花板。线上统一从 CDN 读。
+          #
+          # 用 jsDelivr 而不是 raw.githubusercontent.com，是实测决定的：
+          # raw 在国内经常超时（本机实测 25 秒无响应），jsDelivr 1.5 秒返回。
+          # 注意 jsDelivr 对 GitHub 源有 20MB 单文件上限，管线会对此告警。
+          VITE_MEDIA_BASE: https://cdn.jsdelivr.net/gh/${{ github.repository }}@main
         run: npm run build
 
       - uses: actions/configure-pages@v5

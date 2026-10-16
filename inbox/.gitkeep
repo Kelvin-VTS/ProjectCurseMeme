@@ -1,0 +1,8 @@
+把待处理的原始素材丢进这个目录（或任意目录，用 npm run media -- <目录> 指定），
+然后执行：
+
+    npm run media
+    npm run index
+
+处理结果写入仓库根的 media/，索引写入 web/public/data/。
+这个目录里的原始文件不会被提交（见 .gitignore）。

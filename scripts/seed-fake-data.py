@@ -20,7 +20,7 @@ import pathlib
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-MEDIA_DIR = ROOT / "web" / "public" / "media" / "placeholder"
+MEDIA_DIR = ROOT / "media" / "placeholder"
 DATA_DIR = ROOT / "web" / "public" / "data"
 MONTH_DIR = DATA_DIR / "months"
 

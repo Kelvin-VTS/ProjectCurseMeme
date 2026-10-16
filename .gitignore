@@ -10,6 +10,10 @@ dist/
 # 临时校验产物
 .cache/
 
+# 待处理素材：丢进来跑管线，原始文件不进仓库（处理结果在 media/）
+inbox/*
+!inbox/.gitkeep
+
 # 编辑器 / 系统
 .DS_Store
 Thumbs.db

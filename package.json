@@ -1,0 +1,20 @@
+{
+  "name": "cursememe-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "媒体处理与索引构建工具（前端在 web/，本包只在本地和 Actions 里跑）",
+  "scripts": {
+    "media": "node scripts/process-media.ts",
+    "index": "node scripts/build-index.mjs",
+    "typecheck": "tsc -p scripts/tsconfig.json",
+    "seed": "python scripts/seed-fake-data.py"
+  },
+  "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "@types/node": "^26.6.5",
+    "sharp": "^0.35.5",
+    "typescript": "^7.0.2"
+  }
+}
