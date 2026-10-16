@@ -60,3 +60,57 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # 对着「线上真实地址」做行为验证。
+      # 起因：数据基址曾写死成 /data（以域名根为基准），在项目站点子路径下 404，
+      # 而当时的验证只检查了「文件在带前缀的路径下存在」，没检查「应用实际请求哪个地址」，
+      # 于是这个 bug 一路进了生产。这一步就是为了让同类问题在 CI 里当场暴露。
+      - name: 部署后冒烟检查
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -uo pipefail
+          BASE="${PAGE_URL%/}/"
+          echo "检查目标：$BASE"
+          fail=0
+
+          check() {
+            local url="$1" code
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+              --retry 6 --retry-delay 10 --retry-all-errors "$url" || echo 000)
+            printf '  %s  %s\n' "$code" "$url"
+            if [ "$code" != "200" ]; then
+              echo "::error::冒烟检查失败：$url 返回 $code"
+              fail=1
+            fi
+          }
+
+          check "$BASE"
+          check "${BASE}data/manifest.json"
+          check "${BASE}data/rankings.json"
+          check "${BASE}icon-192.png"
+
+          # SPA 深链：状态码 404 属正常（Pages 靠 404.html 接管），但内容必须是应用外壳
+          deep=$(curl -sS --max-time 30 "${BASE}month/2026-10" || true)
+          case "$deep" in
+            *'<div id="root">'*) echo "  ok   SPA 深链回退正常" ;;
+            *) echo "::error::SPA 深链回退失效：深链没有返回应用外壳"; fail=1 ;;
+          esac
+
+          # manifest 必须是合法 JSON 且字段齐全——数据基址错了这里就会露出来
+          curl -sS --max-time 30 --retry 6 --retry-delay 10 --retry-all-errors \
+            "${BASE}data/manifest.json" -o /tmp/manifest.json || true
+          python3 - <<'PY' || fail=1
+          import json
+          with open('/tmp/manifest.json', encoding='utf-8') as handle:
+              manifest = json.load(handle)
+          assert isinstance(manifest.get('total'), int), 'manifest.total 不是整数'
+          assert isinstance(manifest.get('months'), list), 'manifest.months 不是数组'
+          print(f"  ok   manifest.total = {manifest['total']}，months = {len(manifest['months'])}")
+          PY
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::冒烟检查未全部通过（注意：站点本身可能已经发布成功，失败的是校验）"
+            exit 1
+          fi
+          echo "冒烟检查全部通过"
