@@ -35,21 +35,6 @@
           "title": "同事的表情包生产线"
         },
         {
-          "id": "a1b2c3d4e5f6",
-          "kind": "video",
-          "date": "2026-10-18",
-          "month": "2026-10",
-          "thumb": "media/placeholder/p01.webp",
-          "width": 540,
-          "height": 960,
-          "likes": 44,
-          "contributor": {
-            "login": "friend-01",
-            "avatar": "media/placeholder/avatar-demo.webp"
-          },
-          "title": "半夜三点的群公告"
-        },
-        {
           "id": "f6a1b2c3d4e5",
           "kind": "image",
           "date": "2026-10-02",
@@ -63,6 +48,21 @@
             "avatar": "media/placeholder/avatar-demo.webp"
           },
           "title": "横向长图：一张截图装下整个群"
+        },
+        {
+          "id": "a1b2c3d4e5f6",
+          "kind": "video",
+          "date": "2026-10-18",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p01.webp",
+          "width": 540,
+          "height": 960,
+          "likes": 37,
+          "contributor": {
+            "login": "friend-01",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          },
+          "title": "半夜三点的群公告"
         },
         {
           "id": "e5f6a1b2c3d4",
