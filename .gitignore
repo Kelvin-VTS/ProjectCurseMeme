@@ -7,6 +7,9 @@ dist/
 # 本地 npm 缓存（刻意放在工作区内，避免系统缓存目录被沙箱拒绝）
 .npm-cache/
 
+# 临时校验产物
+.cache/
+
 # 编辑器 / 系统
 .DS_Store
 Thumbs.db

@@ -2,7 +2,9 @@
 
 微信群抽象图片 / 视频的个人归档站。按月份分类展示，支持多人投稿。
 
-当前进度：**S1 骨架 + S2 假数据主页 + 第一轮 UI 改版**（浅色亮紫主题、点赞、本月/年度排行榜、上传者展示）。
+当前进度：**S1 骨架 + S2 假数据主页 + 第一轮 UI 改版 + 线上部署**。
+
+线上地址：**https://kelvin-vts.github.io/ProjectCurseMeme/**
 
 ## 技术栈
 
@@ -132,20 +134,25 @@ node scripts/build-index.mjs
 
 `.github/workflows/deploy.yml` 已经备好，推送到 `main` 即自动构建发布。
 
-### 一次性准备
+### 已完成的部署（2026-10-16）
 
-1. 在 GitHub 上新建一个**空仓库**（不要勾 README / .gitignore / license，否则首次推送会冲突）
-2. 关联远程并推送：
+| 项 | 值 |
+|---|---|
+| 仓库 | https://github.com/Kelvin-VTS/ProjectCurseMeme （public） |
+| 站点 | https://kelvin-vts.github.io/ProjectCurseMeme/ |
+| 发布方式 | push 到 `main` → GitHub Actions 自动构建发布 |
+| 授权 | Git Credential Manager，凭证已存 Windows 凭据管理器，后续推送无需再授权 |
+
+推送命令（改完内容后）：
 
 ```powershell
-git remote add origin https://github.com/<登录名>/<仓库名>.git
-git push -u origin main
+git add -A
+git commit -m "你的说明"
+git push
 ```
 
-首次推送时 Git Credential Manager（本机 `credential.helper=manager`）会弹窗要求授权 GitHub，按提示走完即可。
-
-3. 仓库 **Settings → Pages → Source** 选 **GitHub Actions**
-4. 等 Actions 跑完，站点地址：`https://<登录名>.github.io/<仓库名>/`
+> ⚠️ 本机 `hosts` 把 GitHub 一批域名指向 `127.0.0.1`（加速器），那个转发服务会间歇性抽风。
+> 推送若报 `Failed to connect to github.com:443` 或 `Connection was reset`，**直接重试两三次**通常就过了。
 
 ### 已经处理好的部署细节
 
