@@ -4,6 +4,8 @@ import { fetchManifest, fetchMonth, mediaUrl } from '../lib/data';
 import { formatMonthLabel } from '../lib/date';
 import { Avatar } from '../components/Avatar';
 import { UploadPanel } from '../components/UploadPanel';
+import { useAccess } from '../lib/access';
+import { Link } from 'react-router-dom';
 
 /**
  * 站长页，两个页签：
@@ -87,7 +89,14 @@ function downloadJson(name: string, text: string) {
   URL.revokeObjectURL(url);
 }
 
+const TABS: ReadonlyArray<readonly ['upload' | 'edit', string]> = [
+  ['upload', '上传'],
+  ['edit', '编辑'],
+];
+
 export function Admin() {
+  const access = useAccess();
+
   const [files, setFiles] = useState<MonthFile[]>([]);
   const [drafts, setDrafts] = useState<DraftMap>({});
   const [loading, setLoading] = useState(true);
@@ -95,6 +104,9 @@ export function Admin() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<'upload' | 'edit'>('upload');
+
+  // 编辑能力只归站长：贡献者就算手动把 state 切到 edit，也会被拉回上传
+  const effectiveTab: 'upload' | 'edit' = access.canEdit ? tab : 'upload';
 
   useEffect(() => {
     let alive = true;
@@ -143,15 +155,15 @@ export function Admin() {
         </p>
       </header>
 
-      <div className="mb-4 flex gap-1 border-b border-line">
-        {([['upload', '上传'], ['edit', '编辑']] as const).map(([key, label]) => (
+      <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-line">
+        {TABS.filter(([key]) => key === 'upload' || access.canEdit).map(([key, label]) => (
           <button
             key={key}
             type="button"
             onClick={() => setTab(key)}
             className={[
               '-mb-px border-b-2 px-4 py-2 text-[13px] font-medium transition',
-              tab === key
+              effectiveTab === key
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ink-3 hover:text-ink-2',
             ].join(' ')}
@@ -159,11 +171,31 @@ export function Admin() {
             {label}
           </button>
         ))}
+        <span className="ml-auto self-center text-[11px] text-ink-3">
+          {access.canEdit
+            ? '站长身份：可上传，也可编辑已入库内容'
+            : access.canUpload
+              ? '贡献者身份：只能上传，编辑只归站长'
+              : '访客身份'}
+        </span>
       </div>
 
-      {tab === 'upload' && <UploadPanel />}
+      {!access.login && (
+        <div className="mb-4 rounded-2xl border border-accent/30 bg-accent-soft p-4">
+          <p className="text-[13px] font-semibold text-accent-ink">你还没有连接访问令牌</p>
+          <p className="mt-1 text-[12px] leading-5 text-ink-2">
+            上传功能需要令牌（站长或授权贡献者）。如果你是访客想投稿，请看{' '}
+            <Link to="/guide" className="font-medium text-accent hover:underline">
+              投稿指引
+            </Link>
+            ——那条路不需要任何账号。
+          </p>
+        </div>
+      )}
 
-      {tab === 'edit' && (
+      {effectiveTab === 'upload' && <UploadPanel />}
+
+      {effectiveTab === 'edit' && (
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* ---------------- 编辑区 ---------------- */}
         <div className="min-w-0 space-y-4">

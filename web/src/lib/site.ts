@@ -8,4 +8,6 @@ export const SITE = {
    * 而且上传页需要一个明确的目标，宁可显式配置。
    */
   repo: { owner: 'Kelvin-VTS', name: 'ProjectCurseMeme' },
+  /** 投稿指引里告诉访客怎么把素材交给站长。改这里就能换联系方式。 */
+  contact: '在微信群里直接发给站长（记得附上日期和来源群）',
 } as const;

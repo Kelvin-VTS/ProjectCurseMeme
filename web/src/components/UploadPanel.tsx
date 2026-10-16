@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { SITE } from '../lib/site';
+import { useAccess } from '../lib/access';
 import { formatBytes } from '../lib/date';
 import {
-  LOGIN_KEY,
   MAX_FILE_SIZE,
-  TOKEN_KEY,
   WARN_FILE_SIZE,
   uploadBatch,
-  verifyAccess,
-  type Access,
   type BatchResult,
   type FileStatusEvent,
 } from '../lib/github';
@@ -48,12 +45,10 @@ function today(): string {
 
 export function UploadPanel() {
   const { owner, name: repo } = SITE.repo;
+  const access = useAccess();
 
-  const [token, setToken] = useState('');
-  const [savedToken, setSavedToken] = useState('');
-  const [access, setAccess] = useState<Access | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [checkError, setCheckError] = useState<string | null>(null);
+  // 令牌状态由全局 AccessProvider 管；这里只留输入框的草稿值
+  const [draftToken, setDraftToken] = useState('');
 
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -68,41 +63,11 @@ export function UploadPanel() {
 
   const fileInput = useRef<HTMLInputElement | null>(null);
 
-  // 进页面就把存过的 token 拿出来验一次，省得每次手输
+  // 令牌校验通过后自动把署名填上，省得手输
   useEffect(() => {
-    const stored = window.localStorage.getItem(TOKEN_KEY) ?? '';
-    if (!stored) return;
-    setSavedToken(stored);
-    setToken(stored);
-    setLogin(window.localStorage.getItem(LOGIN_KEY) ?? '');
-  }, []);
-
-  const check = useCallback(
-    async (candidate: string) => {
-      setChecking(true);
-      setCheckError(null);
-      try {
-        const info = await verifyAccess(candidate, owner, repo);
-        setAccess(info);
-        setLogin((current) => current || info.login);
-        window.localStorage.setItem(TOKEN_KEY, candidate);
-        window.localStorage.setItem(LOGIN_KEY, info.login);
-        setSavedToken(candidate);
-      } catch (err) {
-        setAccess(null);
-        setCheckError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setChecking(false);
-      }
-    },
-    [owner, repo],
-  );
-
-  // token 从本地恢复后自动校验一次
-  useEffect(() => {
-    if (savedToken && !access && !checking && !checkError) void check(savedToken);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedToken]);
+    const name = access.login;
+    if (name) setLogin((current) => current || name);
+  }, [access.login]);
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -139,7 +104,7 @@ export function UploadPanel() {
 
   const oversized = queue.filter((item) => item.file.size > MAX_FILE_SIZE);
   const hasWarning = queue.some((item) => item.file.size > WARN_FILE_SIZE);
-  const ready = Boolean(access?.canPush) && queue.length > 0 && oversized.length === 0 && !uploading;
+  const ready = access.canUpload && queue.length > 0 && oversized.length === 0 && !uploading;
 
   const tagList = useMemo(
     () => tags.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean),
@@ -147,18 +112,24 @@ export function UploadPanel() {
   );
 
   async function submit() {
-    if (!access) return;
+    if (!access.canUpload) return;
     setUploading(true);
     setError(null);
     setResult(null);
     try {
       const batch = makeBatchId();
       const outcome = await uploadBatch({
-        token: savedToken,
+        token: access.token,
         owner,
         repo,
         files: queue.map((item) => item.file),
-        meta: { batch, login: login.trim() || access.login, date, group: group.trim(), tags: tagList },
+        meta: {
+          batch,
+          login: login.trim() || access.login || 'unknown',
+          date,
+          group: group.trim(),
+          tags: tagList,
+        },
         onFile: onFileEvent,
       });
       setResult(outcome);
@@ -320,42 +291,50 @@ export function UploadPanel() {
       <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
         <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
           <h2 className="text-[14px] font-semibold text-ink">访问令牌</h2>
-          {access ? (
-            <div className="mt-2.5 flex items-center gap-2">
-              <img src={access.avatarUrl} alt="" className="size-6 rounded-full ring-1 ring-black/10" />
-              <span className="min-w-0 flex-1 truncate text-[12px] text-ink">已连接 {access.login}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  window.localStorage.removeItem(TOKEN_KEY);
-                  window.localStorage.removeItem(LOGIN_KEY);
-                  setAccess(null);
-                  setSavedToken('');
-                  setToken('');
-                }}
-                className="shrink-0 text-[11px] text-ink-3 transition hover:text-like"
-              >
-                断开
-              </button>
+          {access.login ? (
+            <div className="mt-2.5">
+              <div className="flex items-center gap-2">
+                {access.avatarUrl && (
+                  <img src={access.avatarUrl} alt="" className="size-6 rounded-full ring-1 ring-black/10" />
+                )}
+                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                  已连接 {access.login}
+                  <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent-ink">
+                    {access.canEdit ? '站长' : '贡献者'}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={access.disconnect}
+                  className="shrink-0 text-[11px] text-ink-3 transition hover:text-like"
+                >
+                  断开
+                </button>
+              </div>
+              {!access.canEdit && (
+                <p className="mt-2 text-[11px] leading-4 text-accent-2">
+                  贡献者身份：可以上传素材，但改不了已入库内容（点赞 / 上传者 / 下架只有站长能改）。
+                </p>
+              )}
             </div>
           ) : (
             <>
               <input
                 type="password"
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
+                value={draftToken}
+                onChange={(event) => setDraftToken(event.target.value)}
                 placeholder="github_pat_..."
                 className="mt-2.5 w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 font-mono text-[12px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
               <button
                 type="button"
-                disabled={!token.trim() || checking}
-                onClick={() => void check(token.trim())}
+                disabled={!draftToken.trim() || access.checking}
+                onClick={() => void access.connect(draftToken)}
                 className="mt-2 w-full rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-accent-bright disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {checking ? '校验中…' : '保存并校验'}
+                {access.checking ? '校验中…' : '保存并校验'}
               </button>
-              {checkError && <p className="mt-2 text-[11px] break-all text-like">{checkError}</p>}
+              {access.error && <p className="mt-2 text-[11px] break-all text-like">{access.error}</p>}
             </>
           )}
           <p className="mt-2.5 text-[11px] leading-4 text-ink-3">
@@ -410,10 +389,10 @@ export function UploadPanel() {
             {uploading ? '上传中…' : `上传 ${queue.length} 个素材`}
           </button>
 
-          {!access && <p className="mt-2 text-[11px] text-ink-3">先在上面填好访问令牌。</p>}
-          {access && !access.canPush && (
+          {!access.login && <p className="mt-2 text-[11px] text-ink-3">先在上面填好访问令牌。</p>}
+          {access.login && !access.canUpload && (
             <p className="mt-2 text-[11px] text-like">
-              这个令牌对 {access.repoFullName} 没有写权限，检查是否勾了 Contents: Read and write。
+              这个令牌对目标仓库没有写权限，检查是否勾了 Contents: Read and write。
             </p>
           )}
           {oversized.length > 0 && (
