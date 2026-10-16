@@ -8,7 +8,8 @@
     "media": "node scripts/process-media.ts",
     "index": "node scripts/build-index.mjs",
     "typecheck": "tsc -p scripts/tsconfig.json",
-    "seed": "python scripts/seed-fake-data.py"
+    "seed": "python scripts/seed-fake-data.py",
+    "icons": "python scripts/make-icons.py"
   },
   "devDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

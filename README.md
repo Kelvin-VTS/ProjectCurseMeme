@@ -26,8 +26,10 @@ ProjectCurseMeme/
 ├─ inbox/                       待处理素材投放区（原始文件不提交）
 ├─ media/                       媒体真身：原文件 + poster + thumb，提交进仓库
 │  └─ placeholder/              S2 占位图（会被真实素材替换）
+├─ assets/brand/                品牌源文件（purpleicon.png 是图标母版）
 ├─ web/                         前端
 │  ├─ src/
+│  │  ├─ assets/logo.webp       顶栏 logo（3.3 KB，Vite 直接内联进 JS）
 │  │  ├─ components/            布局、瀑布流、卡片、点赞、榜单、预览层
 │  │  ├─ lib/
 │  │  │  ├─ data.ts             地址解析、manifest / 月份 / 榜单读取
@@ -39,10 +41,12 @@ ProjectCurseMeme/
 │  ├─ vite.config.ts            SPA 404 回退 + 开发期媒体中间件
 │  └─ public/
 │     ├─ data/                  索引与榜单（提交进仓库）
+│     ├─ icon-192.png           favicon / apple-touch-icon
 │     └─ robots.txt
 └─ scripts/
    ├─ process-media.ts          S3 入库管线（ffmpeg 转码 + 抽帧选封面 + 写 JSON）
    ├─ build-index.mjs           派生 manifest.json 与 rankings.json
+   ├─ make-icons.py             从 assets/brand/ 生成 favicon 与顶栏 logo
    ├─ seed-fake-data.py         生成 S2 假数据（开发期脚手架）
    ├─ lib/ffmpeg.ts             二进制定位、探测、转码、抽帧
    ├─ lib/images.ts             sharp 元数据 / 缩略图 / 封面评分

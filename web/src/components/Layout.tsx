@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import logoUrl from '../assets/logo.webp';
 import { SITE } from '../lib/site';
 
 const NAV = [
@@ -12,9 +13,13 @@ export function Layout() {
       <header className="sticky top-0 z-30 border-b border-line bg-surface/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-3 px-4 sm:px-6">
           <NavLink to="/" className="flex min-w-0 items-center gap-2.5">
-            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent-bright text-[14px] font-bold text-white shadow-sm shadow-accent/40">
-              阴
-            </span>
+            <img
+              src={logoUrl}
+              alt=""
+              width={32}
+              height={32}
+              className="size-8 shrink-0 rounded-xl shadow-sm shadow-accent/40 ring-1 ring-black/10"
+            />
             <span className="min-w-0">
               <span className="block truncate text-[15px] leading-tight font-semibold tracking-tight text-ink">
                 {SITE.name}
