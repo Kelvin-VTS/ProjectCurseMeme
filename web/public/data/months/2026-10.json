@@ -1,0 +1,164 @@
+{
+  "month": "2026-10",
+  "entries": [
+    {
+      "id": "a1b2c3d4e5f6",
+      "kind": "video",
+      "date": "2026-10-18",
+      "createdAt": "2026-10-18T22:41:00+08:00",
+      "media": "media/placeholder/p01.mp4",
+      "poster": "media/placeholder/p01.webp",
+      "thumb": "media/placeholder/p01.webp",
+      "width": 540,
+      "height": 960,
+      "size": 3204512,
+      "mime": "video/mp4",
+      "hash": "695a80cce3bef6d4370b5df0fe37594209bf6c1fe19e6a9f6dd8d812e8199ef3",
+      "likes": 37,
+      "contributor": {
+        "login": "friend-01",
+        "avatar": "media/placeholder/avatar-demo.webp"
+      },
+      "via": "issue",
+      "visible": true,
+      "title": "半夜三点的群公告",
+      "group": "G07",
+      "note": "配乐比画面还阴间",
+      "duration": 12,
+      "tags": [
+        "抽象"
+      ],
+      "issueNumber": 12
+    },
+    {
+      "id": "b2c3d4e5f6a1",
+      "kind": "image",
+      "date": "2026-10-15",
+      "createdAt": "2026-10-15T19:02:00+08:00",
+      "media": "media/placeholder/p02.webp",
+      "poster": "media/placeholder/p02.webp",
+      "thumb": "media/placeholder/p02.webp",
+      "width": 640,
+      "height": 640,
+      "size": 486233,
+      "mime": "image/webp",
+      "hash": "3fa2ec65e7a3ae2a3c916a255efb9c822f8f6d637bbf43efb785fe4cbc3d15c1",
+      "likes": 52,
+      "contributor": {
+        "login": "friend-02"
+      },
+      "via": "issue",
+      "visible": true,
+      "title": "同事的表情包生产线",
+      "group": "个人投稿",
+      "tags": [
+        "搞笑"
+      ],
+      "issueNumber": 11
+    },
+    {
+      "id": "c3d4e5f6a1b2",
+      "kind": "image",
+      "date": "2026-10-12",
+      "createdAt": "2026-10-12T09:15:00+08:00",
+      "media": "media/placeholder/p03.webp",
+      "poster": "media/placeholder/p03.webp",
+      "thumb": "media/placeholder/p03.webp",
+      "width": 640,
+      "height": 480,
+      "size": 391882,
+      "mime": "image/webp",
+      "hash": "e1b97e4ea5421d9d7cd9805d03c392d53b1a18582bd18c5a9fe9e3ffb529bda4",
+      "likes": 8,
+      "contributor": {
+        "login": "you",
+        "avatar": "media/placeholder/avatar-demo.webp"
+      },
+      "via": "web",
+      "visible": true,
+      "group": "G07"
+    },
+    {
+      "id": "d4e5f6a1b2c3",
+      "kind": "video",
+      "date": "2026-10-09",
+      "createdAt": "2026-10-09T23:58:00+08:00",
+      "media": "media/placeholder/p04.mp4",
+      "poster": "media/placeholder/p04.webp",
+      "thumb": "media/placeholder/p04.webp",
+      "width": 960,
+      "height": 540,
+      "size": 8912004,
+      "mime": "video/mp4",
+      "hash": "5976a5a60ae947457f51daca4db09a5d19d94c527783c71e9dd608a266b531c2",
+      "likes": 64,
+      "contributor": {
+        "login": "friend-01",
+        "avatar": "media/placeholder/avatar-demo.webp"
+      },
+      "via": "issue",
+      "visible": true,
+      "title": "电梯里的 34 秒",
+      "group": "G12",
+      "note": "全程没人说话",
+      "duration": 34,
+      "tags": [
+        "猎奇",
+        "抽象"
+      ],
+      "issueNumber": 10
+    },
+    {
+      "id": "e5f6a1b2c3d4",
+      "kind": "image",
+      "date": "2026-10-05",
+      "createdAt": "2026-10-05T14:20:00+08:00",
+      "media": "media/placeholder/p05.webp",
+      "poster": "media/placeholder/p05.webp",
+      "thumb": "media/placeholder/p05.webp",
+      "width": 540,
+      "height": 720,
+      "size": 612004,
+      "mime": "image/webp",
+      "hash": "c9a7f445f74b97fdd320db3683a36d4d910e75b03f57f53d35f4fc9c2db90408",
+      "likes": 19,
+      "contributor": {
+        "login": "friend-03"
+      },
+      "via": "issue",
+      "visible": true,
+      "group": "个人投稿",
+      "tags": [
+        "猎奇"
+      ],
+      "issueNumber": 9
+    },
+    {
+      "id": "f6a1b2c3d4e5",
+      "kind": "image",
+      "date": "2026-10-02",
+      "createdAt": "2026-10-02T08:03:00+08:00",
+      "media": "media/placeholder/p06.webp",
+      "poster": "media/placeholder/p06.webp",
+      "thumb": "media/placeholder/p06.webp",
+      "width": 1200,
+      "height": 600,
+      "size": 733119,
+      "mime": "image/webp",
+      "hash": "1c21efa6865ee48c7193d4d4ff5b685762e127f3e7ee86b817e93b75152594a4",
+      "likes": 41,
+      "contributor": {
+        "login": "you",
+        "avatar": "media/placeholder/avatar-demo.webp"
+      },
+      "via": "web",
+      "visible": true,
+      "title": "横向长图：一张截图装下整个群",
+      "group": "G07",
+      "tags": [
+        "抽象",
+        "长图"
+      ]
+    }
+  ]
+}

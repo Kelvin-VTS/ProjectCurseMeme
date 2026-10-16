@@ -1,0 +1,24 @@
+# 依赖与构建产物
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# 本地 npm 缓存（刻意放在工作区内，避免系统缓存目录被沙箱拒绝）
+.npm-cache/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# 本地环境变量
+.env
+.env.*
+!.env.example
+
+# 注意：以下目录必须提交进仓库，不要加进来
+#   web/public/data/   站点数据（manifest + 月份 JSON）
+#   media/             媒体原文件与缩略图

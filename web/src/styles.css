@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   主题 token：亮灰底 + 亮紫主色（浅色主题）
+   所有组件只用这里的语义化名字，换主题只改这一块。
+   ------------------------------------------------------------------ */
+@theme {
+  /* 画布与表面 */
+  --color-canvas: #f4f4f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #efeff7;
+  --color-surface-3: #e5e5f0;
+
+  /* 描边 */
+  --color-line: #e4e4ee;
+  --color-line-strong: #cbcbdf;
+
+  /* 文字 */
+  --color-ink: #16162a;
+  --color-ink-2: #55556e;
+  --color-ink-3: #8c8ca5;
+
+  /* 主色：亮紫 */
+  --color-accent: #7c3aed;
+  --color-accent-bright: #8b5cf6;
+  --color-accent-soft: #f2ecff;
+  --color-accent-ink: #4c1d95;
+
+  /* 副色：青绿（点缀、年度榜） */
+  --color-accent-2: #0d9488;
+  --color-accent-2-soft: #e2f6f3;
+
+  /* 点赞 */
+  --color-like: #f43f5e;
+  --color-like-soft: #ffe9ed;
+
+  /* 排行徽标 */
+  --color-gold: #f59e0b;
+  --color-silver: #94a3b8;
+  --color-bronze: #b45309;
+
+  --font-sans: "Inter", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 顶部一层极淡的紫色光晕，让亮灰底不至于是死板的纯灰 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 32rem at 10% -12%, rgba(124, 58, 237, 0.14), transparent 62%),
+      radial-gradient(46rem 28rem at 100% -6%, rgba(13, 148, 136, 0.1), transparent 58%);
+  }
+
+  ::selection {
+    background: rgba(124, 58, 237, 0.2);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-canvas);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border: 2px solid var(--color-canvas);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-bright);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

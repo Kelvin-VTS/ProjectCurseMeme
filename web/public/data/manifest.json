@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "total": 10,
+  "totalLikes": 439,
+  "months": [
+    {
+      "month": "2026-10",
+      "count": 6,
+      "cover": "media/placeholder/p01.webp",
+      "latest": "2026-10-18"
+    },
+    {
+      "month": "2026-09",
+      "count": 4,
+      "cover": "media/placeholder/p07.webp",
+      "latest": "2026-09-27"
+    }
+  ]
+}

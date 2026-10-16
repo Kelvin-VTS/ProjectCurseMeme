@@ -1,0 +1,225 @@
+{
+  "version": 1,
+  "monthly": [
+    {
+      "key": "2026-10",
+      "label": "2026年10月",
+      "items": [
+        {
+          "id": "d4e5f6a1b2c3",
+          "kind": "video",
+          "date": "2026-10-09",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p04.webp",
+          "width": 960,
+          "height": 540,
+          "likes": 64,
+          "contributor": {
+            "login": "friend-01",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          },
+          "title": "电梯里的 34 秒"
+        },
+        {
+          "id": "b2c3d4e5f6a1",
+          "kind": "image",
+          "date": "2026-10-15",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p02.webp",
+          "width": 640,
+          "height": 640,
+          "likes": 52,
+          "contributor": {
+            "login": "friend-02"
+          },
+          "title": "同事的表情包生产线"
+        },
+        {
+          "id": "f6a1b2c3d4e5",
+          "kind": "image",
+          "date": "2026-10-02",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p06.webp",
+          "width": 1200,
+          "height": 600,
+          "likes": 41,
+          "contributor": {
+            "login": "you",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          },
+          "title": "横向长图：一张截图装下整个群"
+        },
+        {
+          "id": "a1b2c3d4e5f6",
+          "kind": "video",
+          "date": "2026-10-18",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p01.webp",
+          "width": 540,
+          "height": 960,
+          "likes": 37,
+          "contributor": {
+            "login": "friend-01",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          },
+          "title": "半夜三点的群公告"
+        },
+        {
+          "id": "e5f6a1b2c3d4",
+          "kind": "image",
+          "date": "2026-10-05",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p05.webp",
+          "width": 540,
+          "height": 720,
+          "likes": 19,
+          "contributor": {
+            "login": "friend-03"
+          }
+        }
+      ]
+    },
+    {
+      "key": "2026-09",
+      "label": "2026年9月",
+      "items": [
+        {
+          "id": "1a2b3c4d5e6f",
+          "kind": "video",
+          "date": "2026-09-27",
+          "month": "2026-09",
+          "thumb": "media/placeholder/p07.webp",
+          "width": 540,
+          "height": 960,
+          "likes": 88,
+          "contributor": {
+            "login": "friend-02"
+          },
+          "title": "开学第一课"
+        },
+        {
+          "id": "4d5e6f1a2b3c",
+          "kind": "image",
+          "date": "2026-09-03",
+          "month": "2026-09",
+          "thumb": "media/placeholder/p10.webp",
+          "width": 960,
+          "height": 540,
+          "likes": 73,
+          "contributor": {
+            "login": "friend-01",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          }
+        },
+        {
+          "id": "3c4d5e6f1a2b",
+          "kind": "image",
+          "date": "2026-09-14",
+          "month": "2026-09",
+          "thumb": "media/placeholder/p09.webp",
+          "width": 600,
+          "height": 600,
+          "likes": 45,
+          "contributor": {
+            "login": "you",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          },
+          "title": "正方形的东西通常都不太对劲"
+        },
+        {
+          "id": "2b3c4d5e6f1a",
+          "kind": "image",
+          "date": "2026-09-20",
+          "month": "2026-09",
+          "thumb": "media/placeholder/p08.webp",
+          "width": 640,
+          "height": 480,
+          "likes": 12,
+          "contributor": {
+            "login": "friend-03"
+          }
+        }
+      ]
+    }
+  ],
+  "yearly": [
+    {
+      "key": "2026",
+      "label": "2026年",
+      "items": [
+        {
+          "id": "1a2b3c4d5e6f",
+          "kind": "video",
+          "date": "2026-09-27",
+          "month": "2026-09",
+          "thumb": "media/placeholder/p07.webp",
+          "width": 540,
+          "height": 960,
+          "likes": 88,
+          "contributor": {
+            "login": "friend-02"
+          },
+          "title": "开学第一课"
+        },
+        {
+          "id": "4d5e6f1a2b3c",
+          "kind": "image",
+          "date": "2026-09-03",
+          "month": "2026-09",
+          "thumb": "media/placeholder/p10.webp",
+          "width": 960,
+          "height": 540,
+          "likes": 73,
+          "contributor": {
+            "login": "friend-01",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          }
+        },
+        {
+          "id": "d4e5f6a1b2c3",
+          "kind": "video",
+          "date": "2026-10-09",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p04.webp",
+          "width": 960,
+          "height": 540,
+          "likes": 64,
+          "contributor": {
+            "login": "friend-01",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          },
+          "title": "电梯里的 34 秒"
+        },
+        {
+          "id": "b2c3d4e5f6a1",
+          "kind": "image",
+          "date": "2026-10-15",
+          "month": "2026-10",
+          "thumb": "media/placeholder/p02.webp",
+          "width": 640,
+          "height": 640,
+          "likes": 52,
+          "contributor": {
+            "login": "friend-02"
+          },
+          "title": "同事的表情包生产线"
+        },
+        {
+          "id": "3c4d5e6f1a2b",
+          "kind": "image",
+          "date": "2026-09-14",
+          "month": "2026-09",
+          "thumb": "media/placeholder/p09.webp",
+          "width": 600,
+          "height": 600,
+          "likes": 45,
+          "contributor": {
+            "login": "you",
+            "avatar": "media/placeholder/avatar-demo.webp"
+          },
+          "title": "正方形的东西通常都不太对劲"
+        }
+      ]
+    }
+  ]
+}

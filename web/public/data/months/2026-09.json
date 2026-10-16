@@ -1,0 +1,110 @@
+{
+  "month": "2026-09",
+  "entries": [
+    {
+      "id": "1a2b3c4d5e6f",
+      "kind": "video",
+      "date": "2026-09-27",
+      "createdAt": "2026-09-27T21:30:00+08:00",
+      "media": "media/placeholder/p07.mp4",
+      "poster": "media/placeholder/p07.webp",
+      "thumb": "media/placeholder/p07.webp",
+      "width": 540,
+      "height": 960,
+      "size": 1802331,
+      "mime": "video/mp4",
+      "hash": "cb3f32d9d12d7e3e2ae8fe513be6a826eb9a0a3a3d2f028809e37e435a8da2a0",
+      "likes": 88,
+      "contributor": {
+        "login": "friend-02"
+      },
+      "via": "issue",
+      "visible": true,
+      "title": "开学第一课",
+      "group": "G12",
+      "duration": 8,
+      "tags": [
+        "抽象"
+      ],
+      "issueNumber": 8
+    },
+    {
+      "id": "2b3c4d5e6f1a",
+      "kind": "image",
+      "date": "2026-09-20",
+      "createdAt": "2026-09-20T17:44:00+08:00",
+      "media": "media/placeholder/p08.webp",
+      "poster": "media/placeholder/p08.webp",
+      "thumb": "media/placeholder/p08.webp",
+      "width": 640,
+      "height": 480,
+      "size": 402551,
+      "mime": "image/webp",
+      "hash": "9f60041246b7f64da9168a81bf17c5b0607a73e57f68b20428a7fff853abd278",
+      "likes": 12,
+      "contributor": {
+        "login": "friend-03"
+      },
+      "via": "issue",
+      "visible": true,
+      "group": "个人投稿",
+      "tags": [
+        "搞笑"
+      ],
+      "issueNumber": 7
+    },
+    {
+      "id": "3c4d5e6f1a2b",
+      "kind": "image",
+      "date": "2026-09-14",
+      "createdAt": "2026-09-14T11:11:00+08:00",
+      "media": "media/placeholder/p09.webp",
+      "poster": "media/placeholder/p09.webp",
+      "thumb": "media/placeholder/p09.webp",
+      "width": 600,
+      "height": 600,
+      "size": 377208,
+      "mime": "image/webp",
+      "hash": "8a891ba8738c9f33919a5d401c31adcf2cb88c9b71b7bf25150916129ab27857",
+      "likes": 45,
+      "contributor": {
+        "login": "you",
+        "avatar": "media/placeholder/avatar-demo.webp"
+      },
+      "via": "web",
+      "visible": true,
+      "title": "正方形的东西通常都不太对劲",
+      "group": "G07",
+      "tags": [
+        "猎奇"
+      ]
+    },
+    {
+      "id": "4d5e6f1a2b3c",
+      "kind": "image",
+      "date": "2026-09-03",
+      "createdAt": "2026-09-03T07:26:00+08:00",
+      "media": "media/placeholder/p10.webp",
+      "poster": "media/placeholder/p10.webp",
+      "thumb": "media/placeholder/p10.webp",
+      "width": 960,
+      "height": 540,
+      "size": 455902,
+      "mime": "image/webp",
+      "hash": "73a4c1a953f2b32cb0e39cbcde90965224ef28dc5d937b7f67720ff9d29b4c60",
+      "likes": 73,
+      "contributor": {
+        "login": "friend-01",
+        "avatar": "media/placeholder/avatar-demo.webp"
+      },
+      "via": "issue",
+      "visible": true,
+      "group": "G12",
+      "tags": [
+        "抽象",
+        "搞笑"
+      ],
+      "issueNumber": 6
+    }
+  ]
+}
