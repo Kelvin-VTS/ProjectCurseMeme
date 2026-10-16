@@ -78,8 +78,12 @@ export function Home() {
           <p className="text-sm font-medium text-ink">数据加载失败</p>
           <p className="mt-1 font-mono text-xs break-all text-ink-3">{error}</p>
           <p className="mt-3 text-xs text-ink-2">
-            确认 <code className="font-mono text-ink">web/public/data/manifest.json</code> 存在，
-            以及开发服务器是在 <code className="font-mono text-ink">web/</code> 目录下启动的。
+            数据地址是 <code className="font-mono text-ink">{import.meta.env.BASE_URL}data</code>
+            （由 <code className="font-mono text-ink">import.meta.env.BASE_URL</code> 推导）。
+            线上 404 通常是数据基址没跟上部署子路径，检查{' '}
+            <code className="font-mono text-ink">VITE_BASE</code> 与{' '}
+            <code className="font-mono text-ink">VITE_DATA_BASE</code>；
+            本地 404 则确认开发服务器是在 <code className="font-mono text-ink">web/</code> 目录下启动的。
           </p>
         </div>
       )}
