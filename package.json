@@ -9,7 +9,8 @@
     "index": "node scripts/build-index.mjs",
     "typecheck": "tsc -p scripts/tsconfig.json",
     "seed": "python scripts/seed-fake-data.py",
-    "icons": "python scripts/make-icons.py"
+    "icons": "python scripts/make-icons.py",
+    "ingest": "node scripts/ingest-batch.mjs"
   },
   "devDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

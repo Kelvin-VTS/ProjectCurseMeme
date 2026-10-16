@@ -1,0 +1,85 @@
+name: Ingest uploaded media
+
+# 浏览器上传页用 PAT 把原文件推到 staging/<批次> 分支，这个 workflow 负责：
+#   1. 取出原文件
+#   2. 跑 process-media.ts（runner 自带 ffmpeg，能转 HEVC）
+#   3. 重建 manifest.json / rankings.json
+#   4. 把成品提交到 main，删掉临时分支
+#   5. 触发 Pages 重新部署
+on:
+  push:
+    branches: ['staging/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write # 提交到 main、删除 staging 分支
+  actions: write # 提交后触发 Pages 重新部署（GITHUB_TOKEN 的提交不会自动触发下游 workflow）
+
+# 同一时刻只处理一批。两个批次同时往 main 推会互相顶掉，所以这里排队而不是取消。
+concurrency:
+  group: ingest-main
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # 用 git archive 而不是 git checkout <分支> -- incoming：
+      # 前者不会动索引，后面 git add -A 不会把 incoming/ 的删除动作留在提交里。
+      - name: 取出本批上传的原始素材
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BRANCH"
+          git archive FETCH_HEAD incoming | tar -x -C .
+          echo "本批文件："
+          ls -lh incoming
+
+      - name: 安装工具链依赖
+        run: npm ci
+
+      - name: 处理素材并重建索引
+        run: node scripts/ingest-batch.mjs
+
+      - name: 检查是否真的产出了东西
+        run: |
+          set -euo pipefail
+          rm -rf incoming
+          git add -A
+          if git diff --cached --quiet; then
+            echo "::error::这批素材没有产生任何可用产物（可能全部处理失败），详见上方处理日志"
+            exit 1
+          fi
+          echo "待提交的文件："
+          git diff --cached --stat
+
+      - name: 提交到 main
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "ingest: 处理上传素材（$BRANCH）"
+          git push origin HEAD:main
+
+      # 只在成功时删分支；失败就留着，方便查问题
+      - name: 删除临时分支
+        run: git push origin --delete "$BRANCH"
+
+      # 用 GITHUB_TOKEN 产生的提交不会触发下游 workflow，
+      # 但 workflow_dispatch 是官方文档里明确的例外，所以显式戳一下部署。
+      - name: 触发 Pages 重新部署
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --ref main
