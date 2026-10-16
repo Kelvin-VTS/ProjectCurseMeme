@@ -1,0 +1,124 @@
+name: Ingest issue submission
+
+# 访客投稿路线：访客用**自己的 GitHub 账号**开一个投稿 Issue，不需要任何令牌。
+# 这个 workflow 负责把附件取下来、用现成管线处理，然后开一个**草稿 PR** 交给站长审核。
+# 合并才上线；关闭 PR 就等于拒稿（素材不会进 main）。
+#
+# 安全要点：正文标题等都是用户可控内容，一律由 scripts/ingest-issue.mjs 落成文件，
+# 这里绝不出现 ${{ github.event.issue.* }} —— 标题里带个引号就能击穿 shell 拼接。
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: write # 推 submit/issue-<n> 分支
+  pull-requests: write # 开草稿 PR
+  issues: write # 回评
+
+concurrency:
+  group: ingest-issue-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  stage:
+    if: ${{ !github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    env:
+      ISSUE: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: 解析投稿并下载附件
+        id: parse
+        run: node scripts/ingest-issue.mjs
+
+      - name: 安装工具链依赖
+        if: steps.parse.outputs.status == 'ok'
+        run: npm ci
+
+      - name: 处理素材并重建索引
+        if: steps.parse.outputs.status == 'ok'
+        run: node scripts/ingest-batch.mjs
+
+      - name: 检查是否有产物
+        id: check
+        if: steps.parse.outputs.status == 'ok'
+        run: |
+          set -uo pipefail
+          rm -rf incoming
+          git add -A
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "本批没有新增内容（这些文件此前已入库）"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --cached --stat
+          fi
+
+      - name: 把处理结果补进回评与 PR 正文
+        if: steps.parse.outputs.status == 'ok'
+        run: |
+          set -uo pipefail
+          if [ -f .cache/ingest-report.json ]; then
+            node -e "
+              const r = require('./.cache/ingest-report.json');
+              const line = '\n处理结果：入库 ' + r.totals.added + '，跳过（已存在）' + r.totals.skipped + '，失败 ' + r.totals.failed + '\n';
+              require('fs').appendFileSync('.cache/issue-comment.md', line);
+              require('fs').appendFileSync('.cache/pr-body.md', '\n' + line);
+            "
+          fi
+          if [ "${CHANGED}" = "false" ]; then
+            printf '\n这批素材此前都已入库，没有产生新内容，也就没有 PR 需要审核。\n' >> .cache/issue-comment.md
+          fi
+        env:
+          CHANGED: ${{ steps.check.outputs.changed }}
+
+      - name: 推分支并开草稿 PR
+        if: steps.parse.outputs.status == 'ok' && steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          BRANCH="submit/issue-$ISSUE"
+          # 标题与作者从文件读，不直接引用事件字段
+          TITLE="$(cat .cache/issue-title.txt)"
+          AUTHOR="$(cat .cache/issue-author.txt)"
+
+          git config user.name  "cursememe-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -q --author="$AUTHOR <$AUTHOR@users.noreply.github.com>" -m "投稿(#$ISSUE)：$TITLE"
+          git push -f origin "$BRANCH"
+
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            echo "已存在同名 PR，分支已更新，审核页会同步刷新"
+            printf '\n草稿 PR 已更新（这条 Issue 之前已经开过 PR）。\n' >> .cache/issue-comment.md
+          else
+            gh pr create --draft --base main --head "$BRANCH" \
+              --title "投稿(#$ISSUE)：$TITLE" \
+              --body-file .cache/pr-body.md > .cache/pr-url.txt
+            printf '\n草稿 PR：%s\n\n站长审核合并后才会正式上线。\n' "$(cat .cache/pr-url.txt)" >> .cache/issue-comment.md
+          fi
+
+      - name: 回评 Issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          if [ -s .cache/issue-comment.md ]; then
+            gh issue comment "$ISSUE" --body-file .cache/issue-comment.md \
+              || echo "回评失败（可能权限不足），但不影响已完成的处理"
+          else
+            echo "没有生成回评内容（可能不是投稿类 Issue），跳过"
+          fi

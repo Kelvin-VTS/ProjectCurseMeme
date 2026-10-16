@@ -10,7 +10,8 @@
     "typecheck": "tsc -p scripts/tsconfig.json",
     "seed": "python scripts/seed-fake-data.py",
     "icons": "python scripts/make-icons.py",
-    "ingest": "node scripts/ingest-batch.mjs"
+    "ingest": "node scripts/ingest-batch.mjs",
+    "test:issue": "node scripts/test-ingest-issue.mjs"
   },
   "devDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

@@ -18,6 +18,9 @@ const TEMPLATE = `【投稿】
 
 （把这段连同图片/视频一起发给站长）`;
 
+const REPO_URL = `https://github.com/${SITE.repo.owner}/${SITE.repo.name}`;
+const SUBMIT_URL = `${REPO_URL}/issues/new?template=submit.md`;
+
 interface Method {
   badge: string;
   title: string;
@@ -25,33 +28,37 @@ interface Method {
   available: boolean;
   summary: string;
   steps: string[];
+  cta?: { label: string; href: string };
 }
 
 const METHODS: Method[] = [
   {
-    badge: '现在就能用',
-    title: '一、直接发给站长',
+    badge: '推荐',
+    title: '一、用 GitHub Issue 自助投稿',
     tone: 'accent',
     available: true,
-    summary: '最省事，不需要任何账号，手机电脑都行。',
+    summary: '用你自己的 GitHub 账号贴文件，不需要任何令牌，也不用等站长在线。',
+    steps: [
+      '需要一个 GitHub 账号（免费注册，一分钟的事）',
+      '点下面的按钮，会打开一个已经排好格式的投稿表单',
+      '把图片 / 视频直接拖进正文，填上日期和标签，勾选声明后提交',
+      '机器人自动转码、抽封面、按月份归档，然后开一个草稿 PR',
+      '站长合并后就上线；署名会自动记成你的 GitHub 账号',
+      '实测附件支持 29.5MB 以上的 mp4，绝大多数微信短视频都够',
+    ],
+    cta: { label: '打开投稿表单', href: SUBMIT_URL },
+  },
+  {
+    badge: '不需要账号',
+    title: '二、直接发给站长',
+    tone: 'accent2',
+    available: true,
+    summary: '没有 GitHub 账号，或者嫌麻烦 —— 这条最省事，手机电脑都行。',
     steps: [
       '把要投稿的图片 / 视频挑出来（手机相册、微信聊天记录都行）',
       '附上日期、来源群、标签这三点信息，站长才能正确归档',
       `发过去：${SITE.contact}`,
-      '站长会用入库工具处理：转码、抽封面、生成缩略图，然后按月份上线',
-    ],
-  },
-  {
-    badge: '开发中',
-    title: '二、用 GitHub Issue 自助投稿',
-    tone: 'accent2',
-    available: false,
-    summary: '用你自己的 GitHub 账号贴文件，不需要任何令牌，也不需要站长在线。',
-    steps: [
-      '需要一个 GitHub 账号（免费注册）',
-      '在仓库里开一个投稿 Issue，把图片/视频拖进正文，填上日期和标签',
-      '机器人自动处理并开一个待合并的请求，站长点一下合并就上线',
-      '附件实测支持 29.5MB 以上的 mp4，绝大多数微信短视频都够',
+      '站长会用入库工具处理，然后按月份上线',
     ],
   },
   {
@@ -191,8 +198,16 @@ export function Guide() {
           </>
         ) : (
           <>
-            你当前是<b>访客</b>身份。上面「方式一」现在就能用；
-            「方式二」做好之后，这里会出现直接的投稿入口。
+            你当前是<b>访客</b>身份。有 GitHub 账号就直接用
+            <a
+              href={SUBMIT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mx-1 font-medium text-accent hover:underline"
+            >
+              投稿表单
+            </a>
+            （推荐，署名会自动记成你的账号）；没有账号就走「二」。
           </>
         )}
       </footer>
@@ -232,6 +247,16 @@ function MethodCard({ method }: { method: Method }) {
             </li>
           ))}
         </ul>
+        {method.cta && (
+          <a
+            href={method.cta.href}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-block rounded-xl bg-accent px-4 py-2 text-[13px] font-medium text-white shadow-sm shadow-accent/30 transition hover:bg-accent-bright"
+          >
+            {method.cta.label} ↗
+          </a>
+        )}
       </div>
     </article>
   );

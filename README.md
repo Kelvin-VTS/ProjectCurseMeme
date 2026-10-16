@@ -54,6 +54,38 @@ ProjectCurseMeme/
    └─ lib/paths.ts              仓库根路径与相对路径换算
 ```
 
+## 访客投稿（Issue 路线）
+
+访客用**自己的 GitHub 账号**开一个投稿 Issue 即可，不需要任何令牌：
+
+```
+访客（GitHub Issue 表单）                    Actions（ingest-issue.yml）
+  .github/ISSUE_TEMPLATE/submit.md             1. 解析正文字段与附件链接
+  拖入图片/视频 + 填日期/来源/标签      ────→   2. 下载附件到 incoming/，投稿人 = Issue 作者
+  勾选声明后提交                                3. 复用 ingest-batch.mjs 处理
+                                                4. 推到 submit/issue-<n> 分支，开**草稿 PR**
+                                                5. 回评 Issue：结果 + PR 链接
+                                              ↓
+                                        站长审核草稿 PR → 合并才上线（关闭即拒稿）
+```
+
+### 几个刻意的设计
+
+| 决定 | 原因 |
+|---|---|
+| 用 **Markdown 模板** 而不是 Issue Form（`.yml`） | Issue Form 的 `textarea` 是纯文本框，**没有附件入口**；Markdown 模板会打开完整编辑器，拖拽附件才可用 |
+| 附件链接**不做语法假设** | 视频附件在正文里可能是裸链接、markdown 链接或 HTML 标签；只按 host 匹配，三种都能认出来 |
+| 投稿人取自 **Issue 作者** | 不需要访客手填，也没法冒名（PR 的 commit 用 `--author` 标注） |
+| 草稿 PR 而非直接入库 | 公开站点 + UGC，一次事故的代价远大于多点一下 Merge |
+| 无关 Issue 静默跳过 | 靠模板标记 + 有无附件判断，避免对 bug 报告之类的 Issue 乱评论 |
+
+### 安全与防滥用
+
+- **绝不把 Issue 内容拼进 shell**：标题等用户可控内容由 `ingest-issue.mjs` 落成文件，
+  workflow 里不出现任何 `${{ github.event.issue.* }}`——标题带个引号就能击穿 shell 拼接
+- 附件单文件上限 90MB（GitHub 硬限 100MB），下载后按 content-type/magic bytes 定扩展名
+- 解析逻辑有测试：`npm run test:issue`（本地起假附件服务器，覆盖 5 个场景 17 项断言）
+
 ## 上传素材（网页）
 
 站长在 `/admin` 的「上传」页签拖入素材即可。**关键分工**：
@@ -301,7 +333,7 @@ git push
 | S2.5 | UI 改版：浅色亮紫主题、点赞、排行榜、上传者展示、站长编辑台 | ✅ |
 | S2.8 | 线上部署（Pages + Actions + SPA 回退） | ✅ |
 | S3 | 媒体入库管线：ffmpeg 转码 / 抽帧选封面 / sharp 缩略图 / 查重 / 归月 | ✅ |
-| S4 | Issue 投稿模板 + Actions 草稿 PR 流程（自动记录投稿人） | ⬜ |
+| S4 | Issue 投稿模板 + Actions 草稿 PR 流程（自动记录投稿人） | ✅ |
 | S4.5 | **网页上传**：浏览器推原文件 → Actions 用真 ffmpeg 处理 | ✅ |
 | S5 | 编辑台接上一键提交（现在仍是导出 JSON 覆盖文件） | ⬜ |
 | S6 | 防滥用、举报入口、下架流程 | ⬜ |
