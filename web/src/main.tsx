@@ -8,10 +8,14 @@ import './styles.css';
 const container = document.getElementById('root');
 if (!container) throw new Error('#root not found');
 
+// 部署在 GitHub Pages 项目站点时站点根是 /<repo>/，路由必须带上同样的 basename，
+// 否则 <Link> 会跳到域名根、深链也会散架。
+const basename = import.meta.env.BASE_URL.replace(/\/+$/, '') || '/';
+
 createRoot(container).render(
   <StrictMode>
     <LikeProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <App />
       </BrowserRouter>
     </LikeProvider>

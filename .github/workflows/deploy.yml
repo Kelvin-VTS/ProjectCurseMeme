@@ -1,0 +1,60 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Pages 部署需要这三项权限；id-token 用于 OIDC 部署
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: 安装依赖
+        working-directory: web
+        run: npm ci
+
+      - name: 构建
+        working-directory: web
+        env:
+          # 项目站点的子路径，直接取仓库名，不用手改
+          VITE_BASE: /${{ github.event.repository.name }}/
+          # 媒体与数据默认跟着产物一起发布（当前占位素材在 web/public 内）。
+          # 等真实素材迁到仓库根目录的 media/ 之后，改成：
+          #   VITE_MEDIA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/main
+          #   VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/main/web/public/data
+          # 那样新增内容提交后刷新即生效，不必等 Pages 重新部署。
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

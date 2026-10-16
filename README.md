@@ -128,6 +128,39 @@ node scripts/build-index.mjs
 | `VITE_MEDIA_BASE` | 媒体根，如 `https://raw.githubusercontent.com/<user>/<repo>/main` |
 | `VITE_DATA_VERSION` | 提交 SHA，绕开 raw 的约 5 分钟 CDN 缓存 |
 
+## 部署到 GitHub Pages
+
+`.github/workflows/deploy.yml` 已经备好，推送到 `main` 即自动构建发布。
+
+### 一次性准备
+
+1. 在 GitHub 上新建一个**空仓库**（不要勾 README / .gitignore / license，否则首次推送会冲突）
+2. 关联远程并推送：
+
+```powershell
+git remote add origin https://github.com/<登录名>/<仓库名>.git
+git push -u origin main
+```
+
+首次推送时 Git Credential Manager（本机 `credential.helper=manager`）会弹窗要求授权 GitHub，按提示走完即可。
+
+3. 仓库 **Settings → Pages → Source** 选 **GitHub Actions**
+4. 等 Actions 跑完，站点地址：`https://<登录名>.github.io/<仓库名>/`
+
+### 已经处理好的部署细节
+
+| 事项 | 处理方式 |
+|---|---|
+| 子路径 | workflow 里用 `${{ github.event.repository.name }}` 自动注入 `VITE_BASE`，不用手改 |
+| SPA 深链 | 构建时把 `index.html` 复制成 `404.html`，配合 `BrowserRouter basename={import.meta.env.BASE_URL}`，直接访问 `/<repo>/month/2026-10` 不会 404 |
+| 构建时长 | 站点产物只有几百 KB，远低于 Pages 的 10 分钟部署超时 |
+| 构建次数 | 用自定义 Actions workflow 发布可绕开 Pages 的 10 builds/hour 软限制（[官方文档](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)） |
+| 素材位置 | 当前占位素材在 `web/public` 内，随产物发布；真实素材迁到仓库根 `media/` 后，按 workflow 里的注释切到 `VITE_MEDIA_BASE` 走 raw，产物就不会变大 |
+
+### 本机环境注意
+
+本机 `hosts` 把 `github.com`、`api.github.com`、`raw.githubusercontent.com` 等一批域名指向了 `127.0.0.1`（GitHub 加速器留下的）。本地那个转发服务目前是通的，但 **Windows TLS 栈在受限沙箱下拿不到凭证**，所以推送必须在沙箱外、以正常权限执行。
+
 ## 路线图
 
 | 步骤 | 内容 | 状态 |
