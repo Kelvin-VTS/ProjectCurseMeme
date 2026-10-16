@@ -54,7 +54,44 @@ ProjectCurseMeme/
    └─ lib/paths.ts              仓库根路径与相对路径换算
 ```
 
-## 媒体入库（S3）
+## 上传素材（网页）
+
+站长在 `/admin` 的「上传」页签拖入素材即可。**关键分工**：
+
+```
+浏览器（/admin）                          Actions（ingest.yml）
+  1. 拖入文件 + 填日期/来源/标签      ─┐
+  2. 用 PAT 走 Git Data API             │
+     把原文件推到 staging/<批次> 分支  ─┴─→ 3. git archive 取出原文件
+                                            4. 跑 process-media.ts（runner 自带 ffmpeg）
+                                            5. 跑 build-index.mjs
+                                            6. 成品提交到 main
+                                            7. 删除临时分支
+                                            8. workflow_dispatch 触发 Pages 重新部署
+```
+
+**为什么处理不在浏览器里做**：微信视频大量是 HEVC/H.265，浏览器不能转码，
+而 GitHub runner 自带 ffmpeg。所以浏览器只负责搬运原文件，
+转码/抽帧/缩略图全部复用本地那条已经验证过的 `process-media.ts`——一套逻辑，两个入口。
+
+原文件只存在于临时分支上，处理完连同分支一起删掉，`main` 的历史保持干净。
+
+### 需要的令牌
+
+fine-grained PAT，权限只要 **Contents: Read and write**，仓库只勾本仓库。
+令牌只存在使用者浏览器的 localStorage，不进仓库、不进构建产物。
+（浏览器直连 GitHub API 的 CORS 已实测确认：预检返回
+`Access-Control-Allow-Origin: *`，且 `Authorization` 在允许的请求头里。）
+
+### 相关命令
+
+```powershell
+# 本地演练 CI 入口（不污染真实数据）
+$env:INCOMING_DIR='.cache/try/incoming'; $env:MEDIA_ROOT='.cache/try/media'; $env:DATA_ROOT='.cache/try/data'
+node scripts/ingest-batch.mjs
+```
+
+## 媒体入库（本地 CLI）
 
 ```powershell
 # 把素材丢进 inbox/，或者用 -- 指定任意目录
@@ -257,7 +294,8 @@ git push
 | S2.8 | 线上部署（Pages + Actions + SPA 回退） | ✅ |
 | S3 | 媒体入库管线：ffmpeg 转码 / 抽帧选封面 / sharp 缩略图 / 查重 / 归月 | ✅ |
 | S4 | Issue 投稿模板 + Actions 草稿 PR 流程（自动记录投稿人） | ⬜ |
-| S5 | `/admin` 接上 PAT，直接提交到仓库（编辑逻辑已就绪） | ⬜ |
+| S4.5 | **网页上传**：浏览器推原文件 → Actions 用真 ffmpeg 处理 | ✅ |
+| S5 | 编辑台接上一键提交（现在仍是导出 JSON 覆盖文件） | ⬜ |
 | S6 | 防滥用、举报入口、下架流程 | ⬜ |
 | S7 | 搜索与筛选、详情弹窗左右切换、导出 JSON | ⬜ |
 

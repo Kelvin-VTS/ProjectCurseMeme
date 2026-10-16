@@ -3,17 +3,17 @@ import type { Entry, MonthFile } from '../types';
 import { fetchManifest, fetchMonth, mediaUrl } from '../lib/data';
 import { formatMonthLabel } from '../lib/date';
 import { Avatar } from '../components/Avatar';
+import { UploadPanel } from '../components/UploadPanel';
 
 /**
- * 站长编辑台（本地）。
+ * 站长页，两个页签：
  *
- * 能改的东西就是站长独有的两类：**上传者** 和 **点赞数**（外加标题/标签/可见性）。
- * 普通访客只看得到投稿入口，没有这一页。
+ * **上传** —— 拖入素材，浏览器用 PAT 把它们推到临时分支 staging/<批次>，
+ * 由 Actions 用真 ffmpeg 处理（浏览器不能转码 HEVC）。见 components/UploadPanel.tsx。
  *
- * 为什么是「导出 JSON」而不是直接存：
- *   仓库还不存在、也没有 PAT，写回远端这件事属于 S5。
- *   现在这条链路是 —— 改 → 导出月份 JSON 覆盖仓库文件 → 跑 build-index 重算榜单 → 提交。
- *   等 S5 接上 GitHub API，同一个界面加一个「直接提交」按钮即可，编辑逻辑不用改。
+ * **编辑** —— 改上传者 / 点赞数 / 标题 / 标签 / 可见性，导出 JSON 覆盖仓库文件。
+ * 之所以还是「导出」而不是直接提交：这些改动发生在已入库的月份 JSON 上，
+ * 直接提交需要重算 manifest 与榜单，交给 Actions 更稳妥（后续可加一键提交）。
  */
 
 interface Draft {
@@ -94,6 +94,7 @@ export function Admin() {
   const [error, setError] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState<'upload' | 'edit'>('upload');
 
   useEffect(() => {
     let alive = true;
@@ -131,16 +132,38 @@ export function Admin() {
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <header className="pb-5">
+      <header className="pb-4">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">上传 / 管理</h1>
         <p className="mt-2 max-w-3xl text-sm text-ink-2">
-          <span className="font-medium text-ink">上传者</span> 与{' '}
-          <span className="font-medium text-ink">点赞数</span> 只有站长能改，这里是编辑台。
-          访客侧的投稿入口（GitHub Issue 表单 + Actions 草稿 PR）在 S4 接入，
-          届时上传者的名字由 Issue 作者自动记录。
+          <span className="font-medium text-ink">上传</span>：拖入素材，浏览器把它们推到临时分支，
+          Actions 用真 ffmpeg 转码后写回仓库——这样 HEVC 视频能转码，手机也能用。
+          <br />
+          <span className="font-medium text-ink">编辑</span>：改上传者 / 点赞数 / 标题 / 标签 /
+          可见性，导出 JSON 覆盖仓库文件。
         </p>
       </header>
 
+      <div className="mb-4 flex gap-1 border-b border-line">
+        {([['upload', '上传'], ['edit', '编辑']] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={[
+              '-mb-px border-b-2 px-4 py-2 text-[13px] font-medium transition',
+              tab === key
+                ? 'border-accent text-accent'
+                : 'border-transparent text-ink-3 hover:text-ink-2',
+            ].join(' ')}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'upload' && <UploadPanel />}
+
+      {tab === 'edit' && (
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* ---------------- 编辑区 ---------------- */}
         <div className="min-w-0 space-y-4">
@@ -382,6 +405,7 @@ export function Admin() {
           </div>
         </aside>
       </div>
+      )}
     </div>
   );
 }
