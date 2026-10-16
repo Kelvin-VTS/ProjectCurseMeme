@@ -20,7 +20,7 @@
  * 处理完必须重建索引：npm run index
  */
 
-import { mkdir, copyFile, readdir, stat } from 'node:fs/promises';
+import { mkdir, copyFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Entry } from '../web/src/types.ts';
 import {
@@ -78,6 +78,8 @@ interface Options {
   dryRun: boolean;
   force: boolean;
   stripExif: boolean;
+  /** 把逐文件结果写成 JSON，供调用方（CI）判断该提交还是该跳过 */
+  report?: string;
   help: boolean;
   paths: string[];
 }
@@ -123,6 +125,7 @@ function parseArgs(argv: string[]): Options {
       case '--crf': opts.crf = Number(take()); break;
       case '--preset': opts.preset = take(); break;
       case '--strip-exif': opts.stripExif = true; break;
+      case '--report': opts.report = path.resolve(take()); break;
       case '--dry-run': opts.dryRun = true; break;
       case '--force': opts.force = true; break;
       default:
@@ -155,6 +158,7 @@ const HELP = `
   --max-edge <像素>     长边上限，默认 1280
   --crf <数值>          H.264 质量，越小越清晰，默认 24
   --strip-exif          图片原图改为重编码（丢掉 EXIF，但不再是原始字节）
+  --report <文件>       把逐文件结果写成 JSON，供 CI 判断该提交还是该跳过
   --dry-run             只报告，不写任何文件
   --force               忽略查重，强制重新入库
 
@@ -556,6 +560,21 @@ async function main(): Promise<void> {
     console.log('\n失败清单：');
     for (const item of failed) console.log(`  ${path.relative(REPO_ROOT, item.file)}\n    ${item.detail}`);
     process.exitCode = 1;
+  }
+
+  // 机器可读的结果：CI 靠它区分「全是重复文件（正常空操作）」和「真的处理失败」
+  if (opts.report) {
+    const relative = (file: string) => path.relative(REPO_ROOT, file).split(path.sep).join('/');
+    const report = {
+      dryRun: opts.dryRun,
+      totals: { added: added.length, skipped: skipped.length, failed: failed.length },
+      added: added.map((item) => ({ file: relative(item.file), detail: item.detail })),
+      skipped: skipped.map((item) => ({ file: relative(item.file), detail: item.detail })),
+      failed: failed.map((item) => ({ file: relative(item.file), detail: item.detail })),
+    };
+    await mkdir(path.dirname(opts.report), { recursive: true });
+    await writeFile(opts.report, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+    console.log(`\n报告已写入 ${relative(opts.report)}`);
   }
 
   if (added.length > 0 && !opts.dryRun) {

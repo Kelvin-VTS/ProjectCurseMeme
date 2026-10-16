@@ -22,6 +22,7 @@ import { promisify } from 'node:util';
 const run = promisify(execFile);
 const ROOT = process.cwd();
 const INCOMING = process.env.INCOMING_DIR ?? 'incoming';
+const REPORT_PATH = path.join(process.env.WORK_DIR ?? '.cache', 'ingest-report.json');
 
 /**
  * 跑一个子步骤，无论成败都把输出原样透出来。
@@ -68,6 +69,7 @@ async function main() {
   // 本地演练时可以改指到临时目录，避免污染真实数据
   if (process.env.MEDIA_ROOT) mediaArgs.push('--media-root', process.env.MEDIA_ROOT);
   if (process.env.DATA_ROOT) mediaArgs.push('--data-root', process.env.DATA_ROOT);
+  mediaArgs.push('--report', REPORT_PATH);
   mediaArgs.push(INCOMING);
 
   const media = await step('处理媒体', mediaArgs);
@@ -75,6 +77,14 @@ async function main() {
   const indexArgs = ['scripts/build-index.mjs'];
   if (process.env.DATA_ROOT) indexArgs.push('--data-root', process.env.DATA_ROOT);
   const index = await step('重建索引与榜单', indexArgs);
+
+  let report = null;
+  try {
+    report = JSON.parse(await readFile(REPORT_PATH, 'utf8'));
+  } catch {
+    console.error(`没能读到处理报告 ${REPORT_PATH}`);
+  }
+  const totals = report?.totals ?? { added: 0, skipped: 0, failed: 0 };
 
   const tail = (text, lines) => text.trim().split('\n').slice(-lines).join('\n');
 
@@ -88,8 +98,14 @@ async function main() {
     `| 日期 | ${job.date ?? '自动推断'} |`,
     `| 来源 | ${job.group ?? '（未填）'} |`,
     `| 标签 | ${Array.isArray(job.tags) && job.tags.length ? job.tags.join('、') : '（未填）'} |`,
-    `| 媒体处理 | ${media.ok ? '全部成功' : '**有失败项**'} |`,
+    `| 入库 | ${totals.added} |`,
+    `| 跳过（已存在） | ${totals.skipped} |`,
+    `| 失败 | ${totals.failed} |`,
     `| 索引重建 | ${index.ok ? '成功' : '**失败**'} |`,
+    '',
+    totals.added === 0 && totals.failed === 0
+      ? '> 本批没有新增内容：这些文件此前已经入库过（按内容哈希查重），属于正常的空操作。'
+      : '',
     '',
     '<details><summary>媒体处理日志（末尾 40 行）</summary>',
     '',
@@ -110,6 +126,29 @@ async function main() {
   if (!index.ok) {
     console.error('索引重建失败，整批视为失败');
     process.exitCode = 1;
+    return;
+  }
+  if (!report) {
+    console.error('拿不到处理报告，无法判断结果，整批视为失败');
+    process.exitCode = 1;
+    return;
+  }
+
+  // 全是重复文件 = 正常的空操作，不该报红。这正是之前把用户坑住的那个判定。
+  if (totals.added === 0 && totals.failed === 0 && totals.skipped > 0) {
+    console.log(`本批 ${totals.skipped} 个文件此前已入库，没有新增内容（正常空操作）`);
+    return;
+  }
+
+  if (totals.added === 0 && totals.failed > 0) {
+    console.error(`本批 ${totals.failed} 个文件全部处理失败，没有任何内容入库`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (totals.failed > 0) {
+    // 部分成功：成功的照常提交，失败的在 Actions 上以告警形式露出
+    console.log(`::warning::本批有 ${totals.failed} 个文件处理失败，其余 ${totals.added} 个已入库`);
   }
 }
 

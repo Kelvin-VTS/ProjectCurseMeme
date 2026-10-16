@@ -102,11 +102,23 @@ export interface VideoInfo {
 }
 
 export async function probeVideo(file: string, tools: ToolPaths): Promise<VideoInfo> {
-  const { stdout } = await execFileAsync(
-    tools.ffprobe,
-    ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', file],
-    { maxBuffer: 16 * 1024 * 1024, windowsHide: true },
-  );
+  let stdout: string;
+  try {
+    ({ stdout } = await execFileAsync(
+      tools.ffprobe,
+      ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', file],
+      { maxBuffer: 16 * 1024 * 1024, windowsHide: true },
+    ));
+  } catch (error) {
+    // 不把整条命令行抛给用户（execFile 默认就是这么干的），只留 ffprobe 的实际抱怨
+    const stderr = String((error as { stderr?: string }).stderr ?? '').trim();
+    const lines = stderr.split('\n').map((line) => line.trim()).filter(Boolean);
+    const reason = lines.slice(-1)[0] ?? '';
+    throw new Error(
+      `ffprobe 读不出视频信息${reason ? `：${reason}` : ''}（可能不是有效视频文件，或编码不被支持）`,
+    );
+  }
+
   const data = JSON.parse(stdout) as FfprobeOutput;
   const streams = data.streams ?? [];
   const video = streams.find((s) => s.codec_type === 'video');

@@ -53,19 +53,25 @@ jobs:
       - name: 处理素材并重建索引
         run: node scripts/ingest-batch.mjs
 
-      - name: 检查是否真的产出了东西
+      # 不再把「没有变更」当成失败：全部文件都已在库（哈希查重命中）是正常的空操作，
+      # 之前一律报红，把用户坑过一次。真正的处理失败由 ingest-batch 自己以非零退出表达。
+      - name: 检查是否有产物
+        id: check
         run: |
-          set -euo pipefail
+          set -uo pipefail
           rm -rf incoming
           git add -A
           if git diff --cached --quiet; then
-            echo "::error::这批素材没有产生任何可用产物（可能全部处理失败），详见上方处理日志"
-            exit 1
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "本批没有新增内容（这些文件此前已入库）"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "待提交的文件："
+            git diff --cached --stat
           fi
-          echo "待提交的文件："
-          git diff --cached --stat
 
       - name: 提交到 main
+        if: steps.check.outputs.changed == 'true'
         run: |
           set -euo pipefail
           git config user.name  "github-actions[bot]"
@@ -73,13 +79,15 @@ jobs:
           git commit -q -m "ingest: 处理上传素材（$BRANCH）"
           git push origin HEAD:main
 
-      # 只在成功时删分支；失败就留着，方便查问题
+      # 走到这里说明处理没出硬错误，临时分支就清掉（包括空操作那批）。
+      # 只有 ingest 步骤本身失败时 workflow 会中断，分支才会留下供排查。
       - name: 删除临时分支
         run: git push origin --delete "$BRANCH"
 
       # 用 GITHUB_TOKEN 产生的提交不会触发下游 workflow，
       # 但 workflow_dispatch 是官方文档里明确的例外，所以显式戳一下部署。
       - name: 触发 Pages 重新部署
+        if: steps.check.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run deploy.yml --ref main
