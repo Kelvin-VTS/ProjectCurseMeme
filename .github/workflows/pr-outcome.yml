@@ -1,0 +1,71 @@
+name: Submission outcome
+
+# 投稿 PR 有结果时，回到对应的 Issue 说一句话：
+#   合并了        → 关掉 Issue，说明已上线
+#   关了但没合并  → 关掉 Issue，说明这次没被采纳，并留一条"可以重开"的提示
+#
+# Issue 号从分支名 submit/issue-<n> 里取，不从标题取 —— 标题用户可改，分支名是我们自己定的。
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  outcome:
+    if: startsWith(github.event.pull_request.head.ref, 'submit/issue-')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      BRANCH: ${{ github.event.pull_request.head.ref }}
+      MERGED: ${{ github.event.pull_request.merged }}
+      SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+    steps:
+      - name: 从分支名取出 Issue 号
+        id: parse
+        run: |
+          set -uo pipefail
+          number="${BRANCH#submit/issue-}"
+          # 只接受纯数字，避免任何意外内容进入后续命令
+          case "$number" in
+            ''|*[!0-9]*)
+              echo "分支名里没有有效的 Issue 号：$BRANCH —— 跳过"
+              echo "ok=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: 已合并 → 关 Issue 并说明上线
+        if: steps.parse.outputs.ok == 'true' && env.MERGED == 'true'
+        env:
+          ISSUE: ${{ steps.parse.outputs.number }}
+        run: |
+          set -euo pipefail
+          gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed --comment "$(cat <<EOF
+这次投稿已被采纳并合并。
+
+站点正在重新部署（约 1 分钟），之后就能在 $SITE_URL 看到。感谢投稿！
+
+> 如果内容需要下架或有任何问题，直接在这里留言或者找站长即可。
+EOF
+)"
+
+      - name: 未合并就关闭 → 说明没被采纳
+        if: steps.parse.outputs.ok == 'true' && env.MERGED != 'true'
+        env:
+          ISSUE: ${{ steps.parse.outputs.number }}
+        run: |
+          set -euo pipefail
+          gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" --reason "not planned" --comment "$(cat <<EOF
+这次投稿没有被采纳 —— 对应的审核 PR 已被关闭，素材不会进入站点。
+
+常见原因：内容不合适、重复、或者信息不全没法归档。
+
+如果你觉得是误判，**重新打开这个 Issue** 或直接跟站长说一声就行。
+EOF
+)"

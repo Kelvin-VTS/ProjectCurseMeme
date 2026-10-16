@@ -181,6 +181,54 @@ export interface BatchResult {
   branchUrl: string;
 }
 
+export interface IngestRun {
+  phase: 'queued' | 'in_progress' | 'completed' | 'unknown';
+  conclusion: string | null;
+  htmlUrl: string;
+  workflowName: string;
+}
+
+/**
+ * 查某个分支上的 ingest 运行状态，用来在页面上直接告诉站长处理结果。
+ * 刻意**不带 token**：公开仓库匿名就能读；而 fine-grained token 若没勾
+ * Actions 权限反而会被拒，也省得为了看个进度再去扩权。
+ */
+export async function fetchIngestRun(
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<IngestRun | null> {
+  const response = await fetch(`${API}/repos/${owner}/${repo}/actions/runs?per_page=30`, {
+    headers: { Accept: 'application/vnd.github+json' },
+  });
+  if (!response.ok) throw new Error(`查询运行状态失败 HTTP ${response.status}`);
+
+  const data = (await response.json()) as {
+    workflow_runs?: Array<{
+      name?: string;
+      head_branch?: string;
+      status?: string;
+      conclusion?: string | null;
+      html_url?: string;
+    }>;
+  };
+
+  const run = (data.workflow_runs ?? []).find((item) => item.head_branch === branch);
+  if (!run) return null;
+
+  const phase =
+    run.status === 'queued' || run.status === 'in_progress' || run.status === 'completed'
+      ? run.status
+      : 'unknown';
+
+  return {
+    phase,
+    conclusion: run.conclusion ?? null,
+    htmlUrl: run.html_url ?? '',
+    workflowName: run.name ?? '',
+  };
+}
+
 /**
  * 一批素材 → 一个 staging 分支上的一个提交。
  * 分支被推送后会触发 ingest workflow，由 runner 用真 ffmpeg 处理。

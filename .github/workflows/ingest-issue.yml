@@ -82,32 +82,69 @@ jobs:
         env:
           CHANGED: ${{ steps.check.outputs.changed }}
 
+      # 这一步以前失败过却没有留下任何原因（gh 的报错被吞了）。
+      # 现在每一步都单独捕获 stderr，失败就打成 ::error:: 注解，
+      # 并且 gh 建 PR 失败时会改用 REST API 再试一次。
       - name: 推分支并开草稿 PR
         if: steps.parse.outputs.status == 'ok' && steps.check.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           BRANCH="submit/issue-$ISSUE"
-          # 标题与作者从文件读，不直接引用事件字段
           TITLE="$(cat .cache/issue-title.txt)"
           AUTHOR="$(cat .cache/issue-author.txt)"
+          printf '投稿(#%s)：%s' "$ISSUE" "$TITLE" > .cache/pr-title.txt
 
           git config user.name  "cursememe-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
-          git add -A
-          git commit -q --author="$AUTHOR <$AUTHOR@users.noreply.github.com>" -m "投稿(#$ISSUE)：$TITLE"
-          git push -f origin "$BRANCH"
 
-          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
-            echo "已存在同名 PR，分支已更新，审核页会同步刷新"
-            printf '\n草稿 PR 已更新（这条 Issue 之前已经开过 PR）。\n' >> .cache/issue-comment.md
-          else
-            gh pr create --draft --base main --head "$BRANCH" \
-              --title "投稿(#$ISSUE)：$TITLE" \
-              --body-file .cache/pr-body.md > .cache/pr-url.txt
+          if ! git checkout -b "$BRANCH" 2>.cache/step-error.txt; then
+            echo "::error::创建分支失败：$(cat .cache/step-error.txt)"; exit 1
+          fi
+          git add -A
+          if ! git commit -q --author="$AUTHOR <$AUTHOR@users.noreply.github.com>" -m "投稿(#$ISSUE)：$TITLE" 2>.cache/step-error.txt; then
+            echo "::error::提交失败：$(cat .cache/step-error.txt)"; exit 1
+          fi
+          if ! git push -f origin "$BRANCH" 2>.cache/step-error.txt; then
+            echo "::error::推送分支失败：$(cat .cache/step-error.txt)"; exit 1
+          fi
+
+          # 已经开过 PR（例如投稿人改了 Issue 触发重跑）就复用
+          if EXISTING="$(gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" --json url -q .url 2>/dev/null)" && [ -n "$EXISTING" ]; then
+            printf '\n草稿 PR 已更新（这条 Issue 之前已经开过 PR）：%s\n' "$EXISTING" >> .cache/issue-comment.md
+            exit 0
+          fi
+
+          if gh pr create --draft --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+               --title "$(cat .cache/pr-title.txt)" --body-file .cache/pr-body.md \
+               > .cache/pr-url.txt 2>.cache/step-error.txt; then
             printf '\n草稿 PR：%s\n\n站长审核合并后才会正式上线。\n' "$(cat .cache/pr-url.txt)" >> .cache/issue-comment.md
+            exit 0
+          fi
+
+          # gh 失败就退回 REST API —— 两条独立路径，避免卡死在这一步
+          echo "::warning::gh pr create 失败，改用 REST API 重试：$(cat .cache/step-error.txt)"
+          node -e "
+            const fs = require('fs');
+            fs.writeFileSync('.cache/pr-payload.json', JSON.stringify({
+              title: fs.readFileSync('.cache/pr-title.txt', 'utf8'),
+              head: process.env.BRANCH,
+              base: 'main',
+              draft: true,
+              body: fs.readFileSync('.cache/pr-body.md', 'utf8'),
+            }));
+          "
+          if curl -sS -f -X POST \
+               -H "Authorization: Bearer $GH_TOKEN" \
+               -H "Accept: application/vnd.github+json" \
+               "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls" \
+               --data-binary @.cache/pr-payload.json -o .cache/pr-response.json 2>.cache/step-error.txt; then
+            printf '\n草稿 PR：%s\n\n站长审核合并后才会正式上线。\n' \
+              "$(node -e "console.log(require('./.cache/pr-response.json').html_url)")" >> .cache/issue-comment.md
+          else
+            echo "::error::建 PR 失败（gh 和 REST API 都没成）：$(cat .cache/step-error.txt) $(head -c 300 .cache/pr-response.json 2>/dev/null)"
+            exit 1
           fi
 
       - name: 回评 Issue

@@ -202,7 +202,11 @@ async function main() {
   await writeFile(path.join(WORK, 'issue-title.txt'), safeTitle, 'utf8');
   await writeFile(path.join(WORK, 'issue-author.txt'), safeAuthor, 'utf8');
 
-  const isSubmission = body.includes(MARKER) || extractAttachmentUrls(body).length > 0;
+  // 模板标记用原始正文判断（标记本身就是 HTML 注释）；
+  // 但**提取附件必须排除注释**：模板的说明文字是注释，访客很容易顺手把文件
+  // 拖进注释块里——那不算投稿内容，而且被删掉后会留下 404 的死链接。
+  const renderable = stripComments(body);
+  const isSubmission = body.includes(MARKER) || extractAttachmentUrls(renderable).length > 0;
   if (!isSubmission) {
     log('这个 Issue 看不出是投稿（没有模板标记、也没有附件），静默跳过，不做任何评论。');
     await writeStatus('skip');
@@ -216,7 +220,7 @@ async function main() {
   const note = pick(sections, '说明', '备注');
   const declared = /^\s*[-*]\s*\[[xX]\]/m.test(pick(sections, '声明'));
 
-  const urls = extractAttachmentUrls(body);
+  const urls = extractAttachmentUrls(renderable);
   log(`字段：日期=${date || '(自动推断)'}  来源=${group || '(空)'}  标签=${tags.join('/') || '(空)'}`);
   log(`附件：找到 ${urls.length} 个  声明已勾选=${declared}`);
 

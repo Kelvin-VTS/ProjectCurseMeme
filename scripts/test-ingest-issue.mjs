@@ -225,6 +225,31 @@ async function main() {
     check('状态为 download-failed', broken.status, 'download-failed');
     checkTruthy('回评里带上了失败原因', broken.comment?.includes('HTTP 404'));
     await broken.cleanup();
+    // ================= 场景 6：附件被拖进了 HTML 注释里 =================
+    // 这是真实踩到的：模板的说明文字是注释，访客顺手把文件拖进注释块，
+    // 一旦那个文件被删掉就会留下 404 死链接。注释不算正文内容。
+    console.log('\n场景 6：附件只出现在 HTML 注释里 → 不该被当成投稿素材');
+    const inComment = await runIngest(
+      [
+        '<!-- cursememe-submit -->',
+        '',
+        '### 素材文件',
+        '',
+        '<!--',
+        '',
+        `<img src="${base}/img" />`,
+        '',
+        '-->',
+        '',
+        '### 声明',
+        '',
+        '- [x] 我确认',
+      ].join('\n'),
+      { extraHosts },
+    );
+    check('状态为 nothing（注释里的链接不算数）', inComment.status, 'nothing');
+    check('没有落盘任何文件', inComment.files.length, 0);
+    await inComment.cleanup();
   } finally {
     server.close();
   }

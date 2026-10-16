@@ -5,9 +5,11 @@ import { formatBytes } from '../lib/date';
 import {
   MAX_FILE_SIZE,
   WARN_FILE_SIZE,
+  fetchIngestRun,
   uploadBatch,
   type BatchResult,
   type FileStatusEvent,
+  type IngestRun,
 } from '../lib/github';
 
 /**
@@ -60,6 +62,8 @@ export function UploadPanel() {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<BatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [run, setRun] = useState<IngestRun | null>(null);
+  const [polling, setPolling] = useState(false);
 
   const fileInput = useRef<HTMLInputElement | null>(null);
 
@@ -68,6 +72,56 @@ export function UploadPanel() {
     const name = access.login;
     if (name) setLogin((current) => current || name);
   }, [access.login]);
+
+  // 上传成功后自动盯几次运行状态，把结果直接显示在页面上。
+  // 只盯 8 次就停：Actions 的运行查询是匿名接口，每次上传都无限轮询会吃掉限流额度。
+  const branch = result?.branch ?? null;
+
+  const refreshRun = useCallback(async () => {
+    if (!branch) return;
+    setPolling(true);
+    try {
+      setRun(await fetchIngestRun(owner, repo, branch));
+    } catch {
+      /* 查状态失败不影响主流程 */
+    } finally {
+      setPolling(false);
+    }
+  }, [branch, owner, repo]);
+
+  useEffect(() => {
+    if (!branch) {
+      setRun(null);
+      return;
+    }
+    let alive = true;
+    let timer: number | undefined;
+    let remaining = 8;
+
+    const tick = async () => {
+      if (!alive) return;
+      setPolling(true);
+      let status: IngestRun | null = null;
+      try {
+        status = await fetchIngestRun(owner, repo, branch);
+      } catch {
+        /* 静默：状态查不到不该干扰上传本身 */
+      }
+      if (!alive) return;
+      setPolling(false);
+      if (status) setRun(status);
+
+      remaining -= 1;
+      if (status?.phase === 'completed' || remaining <= 0) return;
+      timer = window.setTimeout(() => void tick(), 12000);
+    };
+
+    void tick();
+    return () => {
+      alive = false;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [branch, owner, repo]);
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -247,22 +301,55 @@ export function UploadPanel() {
         )}
 
         {result && (
-          <div className="rounded-2xl border border-accent-2/30 bg-accent-2-soft p-4">
-            <p className="text-[13px] font-semibold text-accent-2">已提交，Actions 正在处理</p>
-            <p className="mt-1 text-[12px] leading-5 text-ink-2">
-              分支 <code className="font-mono text-ink">{result.branch}</code> 已推送，
-              runner 会用 ffmpeg 转码并重建索引，通常 1–2 分钟。
-              完成后刷新首页即可看到新条目。
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
-              <a
-                href={`https://github.com/${owner}/${repo}/actions/workflows/ingest.yml`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-lg border border-accent-2/40 px-2.5 py-1 font-medium text-accent-2 transition hover:bg-accent-2/10"
+          <div
+            className={[
+              'rounded-2xl border p-4',
+              runFailed(run) ? 'border-like/30 bg-like-soft' : 'border-accent-2/30 bg-accent-2-soft',
+            ].join(' ')}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <p
+                className={[
+                  'text-[13px] font-semibold',
+                  runFailed(run) ? 'text-like' : 'text-accent-2',
+                ].join(' ')}
               >
-                查看处理进度
-              </a>
+                {runTitle(run, polling)}
+              </p>
+              {!runDone(run) && (
+                <button
+                  type="button"
+                  onClick={() => void refreshRun()}
+                  disabled={polling}
+                  className="rounded-lg border border-current/30 px-2 py-0.5 text-[11px] font-medium text-ink-2 transition hover:bg-surface disabled:opacity-50"
+                >
+                  {polling ? '查询中…' : '刷新'}
+                </button>
+              )}
+            </div>
+
+            <p className="mt-1 text-[12px] leading-5 text-ink-2">{runDetail(run)}</p>
+
+            <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
+              {run?.htmlUrl ? (
+                <a
+                  href={run.htmlUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-line px-2.5 py-1 font-medium text-ink-2 transition hover:text-ink"
+                >
+                  运行日志
+                </a>
+              ) : (
+                <a
+                  href={`https://github.com/${owner}/${repo}/actions`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-line px-2.5 py-1 font-medium text-ink-2 transition hover:text-ink"
+                >
+                  打开 Actions
+                </a>
+              )}
               <a
                 href={result.commitUrl}
                 target="_blank"
@@ -271,6 +358,7 @@ export function UploadPanel() {
               >
                 这次提交
               </a>
+              <span className="self-center font-mono text-[11px] text-ink-3">{result.branch}</span>
             </div>
           </div>
         )}
@@ -443,4 +531,38 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
       {children}
     </label>
   );
+}
+
+function runDone(run: IngestRun | null): boolean {
+  return run?.phase === 'completed';
+}
+
+function runFailed(run: IngestRun | null): boolean {
+  return run?.phase === 'completed' && run.conclusion !== 'success';
+}
+
+function runTitle(run: IngestRun | null, polling: boolean): string {
+  if (!run) return polling ? '正在查询处理状态…' : '已提交，等待 Actions 接手';
+  if (run.phase === 'queued') return 'Actions 已排队，等待运行';
+  if (run.phase === 'in_progress') return '正在处理：转码 / 抽帧 / 重建索引';
+  if (run.conclusion === 'success') return '处理完成，站点正在重新部署';
+  if (run.conclusion === 'failure') return '处理失败';
+  if (run.conclusion === 'cancelled') return '这次运行被取消了';
+  return '处理已结束';
+}
+
+function runDetail(run: IngestRun | null): string {
+  if (!run) {
+    return '刚推送分支，GitHub 通常几秒内开始调度；页面会自己刷新，也可以点「刷新」手动查。';
+  }
+  if (run.phase === 'queued' || run.phase === 'in_progress') {
+    return '通常 1–2 分钟：先装依赖，再用 ffmpeg 转码抽帧，最后重建索引。完成后这里会自动更新。';
+  }
+  if (run.conclusion === 'success') {
+    return '新条目已提交到 main，约 1 分钟后刷新首页就能看到。';
+  }
+  if (run.conclusion === 'failure') {
+    return '点「运行日志」看失败原因（常见是文件损坏、或编码读不出来）。临时分支会保留方便排查，修好后重新上传即可。';
+  }
+  return `运行状态：${run.conclusion ?? '未知'}。可以点「运行日志」看细节。`;
 }
