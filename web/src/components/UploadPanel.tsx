@@ -64,6 +64,7 @@ export function UploadPanel() {
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState<IngestRun | null>(null);
   const [polling, setPolling] = useState(false);
+  const [pollError, setPollError] = useState<string | null>(null);
 
   const fileInput = useRef<HTMLInputElement | null>(null);
 
@@ -82,8 +83,10 @@ export function UploadPanel() {
     setPolling(true);
     try {
       setRun(await fetchIngestRun(owner, repo, branch));
-    } catch {
-      /* 查状态失败不影响主流程 */
+      setPollError(null);
+    } catch (error) {
+      // 匿名接口只有 60 次/小时。查不到就说清楚，别让页面停在过期状态上装没事。
+      setPollError(error instanceof Error ? error.message : String(error));
     } finally {
       setPolling(false);
     }
@@ -104,8 +107,9 @@ export function UploadPanel() {
       let status: IngestRun | null = null;
       try {
         status = await fetchIngestRun(owner, repo, branch);
-      } catch {
-        /* 静默：状态查不到不该干扰上传本身 */
+        if (alive) setPollError(null);
+      } catch (error) {
+        if (alive) setPollError(error instanceof Error ? error.message : String(error));
       }
       if (!alive) return;
       setPolling(false);
@@ -329,6 +333,12 @@ export function UploadPanel() {
             </div>
 
             <p className="mt-1 text-[12px] leading-5 text-ink-2">{runDetail(run)}</p>
+
+            {pollError && (
+              <p className="mt-1 text-[11px] leading-4 text-ink-3">
+                状态查询受限（{pollError}）——上传本身不受影响，可点「运行日志」直接看，或稍后再点「刷新」。
+              </p>
+            )}
 
             <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
               {run?.htmlUrl ? (
