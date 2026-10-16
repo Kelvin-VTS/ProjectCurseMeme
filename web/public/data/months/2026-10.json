@@ -31,6 +31,29 @@
       "issueNumber": 12
     },
     {
+      "id": "e8e0cc455833",
+      "kind": "video",
+      "date": "2026-10-16",
+      "createdAt": "2026-10-16T11:59:31.498Z",
+      "media": "media/2026-10/e8e0cc455833.mp4",
+      "poster": "media/2026-10/e8e0cc455833.poster.webp",
+      "thumb": "media/2026-10/e8e0cc455833.thumb.webp",
+      "width": 590,
+      "height": 1280,
+      "size": 3592005,
+      "mime": "video/mp4",
+      "hash": "e8e0cc455833054c6731d8de824147d968da54ac9ee10ccb2b39d4f4829c74e8",
+      "likes": 0,
+      "contributor": {
+        "login": "Kelvin-VTS",
+        "avatar": "https://github.com/Kelvin-VTS.png"
+      },
+      "via": "cli",
+      "visible": true,
+      "processedAt": "2026-10-16T11:59:31.498Z",
+      "duration": 43.44
+    },
+    {
       "id": "15c9bfd3caab",
       "kind": "image",
       "date": "2026-10-16",
