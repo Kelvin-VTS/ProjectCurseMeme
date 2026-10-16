@@ -75,32 +75,58 @@ jobs:
           fail=0
 
           check() {
-            local url="$1" code
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
-              --retry 6 --retry-delay 10 --retry-all-errors "$url" || echo 000)
-            printf '  %s  %s\n' "$code" "$url"
-            if [ "$code" != "200" ]; then
-              echo "::error::冒烟检查失败：$url 返回 $code"
+            local url="$1" actual
+            actual=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+              --retry 6 --retry-delay 10 --retry-all-errors "$url" 2>/dev/null) || actual=000
+            printf '  %s  %s\n' "$actual" "$url"
+            if [ "$actual" != "200" ]; then
+              echo "::error::冒烟检查失败：$url 返回 $actual"
               fail=1
             fi
           }
 
+          echo "[1/4] 静态资源可达性"
           check "$BASE"
           check "${BASE}data/manifest.json"
           check "${BASE}data/rankings.json"
           check "${BASE}icon-192.png"
 
-          # SPA 深链：状态码 404 属正常（Pages 靠 404.html 接管），但内容必须是应用外壳
-          deep=$(curl -sS --max-time 30 "${BASE}month/2026-10" || true)
+          # 光检查「文件存在」抓不到基址写死的 bug：文件在 /<repo>/data/ 下确实存在且 200，
+          # 但应用可能请求的是域名根的 /data/。所以必须看产物里实际烧进去什么。
+          echo "[2/4] 基址回归检查（产物里不得出现以域名根为基准的地址）"
+          html=$(curl -sS --max-time 30 "$BASE" 2>/dev/null || true)
+          bundle=$(printf '%s' "$html" | sed -n 's/.*src="\([^"]*assets\/index-[^"]*\.js\)".*/\1/p' | head -1)
+          if [ -z "$bundle" ]; then
+            echo "::warning::没能从 HTML 解析出 JS 产物路径，跳过基址回归检查"
+          else
+            origin=$(printf '%s' "$BASE" | sed -E 's#(https?://[^/]+).*#\1#')
+            printf '  产物 %s\n' "$origin$bundle"
+            curl -sS --max-time 60 "$origin$bundle" -o /tmp/bundle.js 2>/dev/null || true
+            for literal in '"/data"' '"/media"'; do
+              if grep -qF "$literal" /tmp/bundle.js 2>/dev/null; then
+                echo "::error::产物里出现了以域名根为基准的基址 $literal；部署在子路径下必然 404"
+                fail=1
+              else
+                printf '  ok   未出现根绝对基址 %s\n' "$literal"
+              fi
+            done
+          fi
+
+          # 说明：Pages 对任何未知路径都会返回 404.html，而它本身就是应用外壳，
+          # 所以这一步只能证明「404 回退机制存在」，证明不了前端路由真的解析正确。
+          # 要验证后者必须跑真实浏览器，那是更重的一步，暂不在这里做。
+          echo "[3/4] SPA 404 回退（仅验证回退机制存在）"
+          deep=$(curl -sS --max-time 30 "${BASE}month/2026-10" 2>/dev/null || true)
           case "$deep" in
-            *'<div id="root">'*) echo "  ok   SPA 深链回退正常" ;;
+            *'<div id="root">'*) echo "  ok   深链返回的是应用外壳" ;;
             *) echo "::error::SPA 深链回退失效：深链没有返回应用外壳"; fail=1 ;;
           esac
 
-          # manifest 必须是合法 JSON 且字段齐全——数据基址错了这里就会露出来
+          echo "[4/4] manifest.json 结构"
           curl -sS --max-time 30 --retry 6 --retry-delay 10 --retry-all-errors \
-            "${BASE}data/manifest.json" -o /tmp/manifest.json || true
-          python3 - <<'PY' || fail=1
+            "${BASE}data/manifest.json" -o /tmp/manifest.json 2>/dev/null || true
+          if command -v python3 >/dev/null 2>&1; then
+            python3 - <<'PY' || fail=1
           import json
           with open('/tmp/manifest.json', encoding='utf-8') as handle:
               manifest = json.load(handle)
@@ -108,6 +134,9 @@ jobs:
           assert isinstance(manifest.get('months'), list), 'manifest.months 不是数组'
           print(f"  ok   manifest.total = {manifest['total']}，months = {len(manifest['months'])}")
           PY
+          else
+            echo "::warning::没有 python3，跳过 manifest 结构校验"
+          fi
 
           if [ "$fail" -ne 0 ]; then
             echo "::error::冒烟检查未全部通过（注意：站点本身可能已经发布成功，失败的是校验）"
