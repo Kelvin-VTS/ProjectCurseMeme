@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Entry, MonthFile } from '../types';
 import { fetchManifest, fetchMonth, mediaUrl } from '../lib/data';
 import { formatMonthLabel } from '../lib/date';
 import { Avatar } from '../components/Avatar';
 import { UploadPanel } from '../components/UploadPanel';
 import { useAccess } from '../lib/access';
+import { SITE } from '../lib/site';
+import { commitTextFiles, fetchIngestRun, type IngestRun } from '../lib/github';
 import { Link } from 'react-router-dom';
 
 /**
@@ -105,6 +107,12 @@ export function Admin() {
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<'upload' | 'edit'>('upload');
 
+  // 一键提交：只推改动的月份 JSON，派生文件交给 Actions 重建
+  const [editPhase, setEditPhase] = useState<'idle' | 'submitting' | 'done' | 'failed'>('idle');
+  const [editMessage, setEditMessage] = useState<string | null>(null);
+  const [editRun, setEditRun] = useState<IngestRun | null>(null);
+  const editTimer = useRef<number | null>(null);
+
   // 编辑能力只归站长：贡献者就算手动把 state 切到 edit，也会被拉回上传
   const effectiveTab: 'upload' | 'edit' = access.canEdit ? tab : 'upload';
 
@@ -141,6 +149,71 @@ export function Admin() {
   function update(id: string, patch: Partial<Draft>) {
     setDrafts((previous) => ({ ...previous, [id]: { ...previous[id], ...patch } }));
   }
+
+  const canSubmit =
+    access.canEdit && access.token !== '' && changedOutputs.length > 0 && editPhase !== 'submitting';
+
+  /** 提交后盯几次重建进度，把结果直接显示出来（最多 8 次，避免吃掉匿名接口限流） */
+  function pollEditRun(branch: string, attempts = 8) {
+    let left = attempts;
+    const tick = async () => {
+      try {
+        const run = await fetchIngestRun(SITE.repo.owner, SITE.repo.name, branch);
+        if (run) setEditRun(run);
+        if (run?.phase === 'completed') {
+          const ok = run.conclusion === 'success';
+          setEditPhase(ok ? 'done' : 'failed');
+          setEditMessage(
+            ok
+              ? '重建完成，站点正在重新部署——约 1 分钟后刷新首页即可看到。'
+              : '重建失败，点下面的「查看重建进度」看日志。',
+          );
+          return;
+        }
+      } catch {
+        /* 状态查不到不影响提交本身 */
+      }
+      left -= 1;
+      if (left > 0) editTimer.current = window.setTimeout(() => void tick(), 12000);
+    };
+    void tick();
+  }
+
+  async function submitEdits() {
+    if (!canSubmit) return;
+    setEditPhase('submitting');
+    setEditMessage(null);
+    setEditRun(null);
+
+    const branch = `edit/${Date.now().toString(36)}`;
+    try {
+      await commitTextFiles({
+        token: access.token,
+        owner: SITE.repo.owner,
+        repo: SITE.repo.name,
+        branch,
+        message: `edit: 站长修改 ${changedOutputs.length} 个月份文件`,
+        files: changedOutputs.map((output) => ({
+          path: output.path,
+          text: `${JSON.stringify(output.json, null, 2)}\n`,
+        })),
+      });
+      setDrafts({});
+      setEditPhase('done');
+      setEditMessage(`已推到 ${branch}，正在重建索引…`);
+      pollEditRun(branch);
+    } catch (err) {
+      setEditPhase('failed');
+      setEditMessage(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  useEffect(
+    () => () => {
+      if (editTimer.current) window.clearTimeout(editTimer.current);
+    },
+    [],
+  );
 
   return (
     <div className="mx-auto max-w-[1400px]">
@@ -302,9 +375,58 @@ export function Admin() {
 
         {/* ---------------- 导出区 ---------------- */}
         <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
+          {/* ---------------- 一键提交 ---------------- */}
           <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
             <div className="flex items-baseline justify-between gap-2">
-              <h2 className="text-[14px] font-semibold text-ink">导出改动</h2>
+              <h2 className="text-[14px] font-semibold text-ink">提交修改</h2>
+              <span className="font-mono text-[11px] text-ink-3">
+                {changedCount > 0 ? `${changedCount} 条改动` : '暂无改动'}
+              </span>
+            </div>
+
+            <p className="mt-2 text-[12px] leading-5 text-ink-2">
+              {access.canEdit
+                ? '只把改动的月份 JSON 推到 edit 分支，Actions 会合进 main、重建 manifest 与榜单，再自动重新部署。'
+                : '只有站长能提交修改。'}
+            </p>
+
+            <button
+              type="button"
+              disabled={!canSubmit}
+              onClick={() => void submitEdits()}
+              className="mt-3 w-full rounded-xl bg-accent px-3 py-2 text-[13px] font-medium text-white shadow-sm shadow-accent/30 transition hover:bg-accent-bright disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {editPhase === 'submitting' ? '提交中…' : `提交 ${changedCount} 条改动`}
+            </button>
+
+            {editMessage && (
+              <p
+                className={[
+                  'mt-2 text-[11px] leading-4 break-all',
+                  editPhase === 'failed' ? 'text-like' : 'text-ink-2',
+                ].join(' ')}
+              >
+                {editMessage}
+              </p>
+            )}
+            {editRun?.htmlUrl && (
+              <a
+                href={editRun.htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1.5 inline-block text-[11px] font-medium text-accent hover:underline"
+              >
+                查看重建进度 ↗
+              </a>
+            )}
+            {!access.token && access.canEdit === false && (
+              <p className="mt-2 text-[11px] text-ink-3">先在「上传」页签填好访问令牌。</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-[14px] font-semibold text-ink">手动导出（备用）</h2>
               <span className="font-mono text-[11px] text-ink-3">
                 {changedCount > 0 ? `${changedCount} 条改动` : '暂无改动'}
               </span>
@@ -397,25 +519,26 @@ export function Admin() {
           </div>
 
           <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-            <h2 className="text-[14px] font-semibold text-ink">改完怎么生效</h2>
+            <h2 className="text-[14px] font-semibold text-ink">提交后会发生什么</h2>
             <ol className="mt-2.5 space-y-2 text-[12px] leading-5 text-ink-2">
               <li>
-                <span className="font-mono text-accent">1.</span> 下载（或复制）上面的文件，
-                覆盖到 <code className="font-mono text-ink">web/public/data/months/</code>
+                <span className="font-mono text-accent">1.</span> 浏览器把改动的月份 JSON 推到{' '}
+                <code className="font-mono text-ink">edit/&lt;批次&gt;</code> 分支
               </li>
               <li>
-                <span className="font-mono text-accent">2.</span> 在项目根目录执行{' '}
-                <code className="font-mono text-ink">node scripts/build-index.mjs</code>
-                <br />
-                <span className="text-ink-3">
-                  它会重算 manifest.json（数量 / 总点赞）和 rankings.json（本月榜 / 年度榜）
-                </span>
+                <span className="font-mono text-accent">2.</span> Actions 把它合进 main，并跑{' '}
+                <code className="font-mono text-ink">build-index.mjs</code> 重建 manifest.json 与
+                rankings.json
               </li>
               <li>
-                <span className="font-mono text-accent">3.</span>{' '}
-                <code className="font-mono text-ink">git add -A &amp;&amp; git commit &amp;&amp; git push</code>
+                <span className="font-mono text-accent">3.</span> 临时分支被删除，站点自动重新部署
+                （约 1–2 分钟）
               </li>
             </ol>
+            <p className="mt-2 text-[11px] leading-4 text-ink-3">
+              派生文件故意不在浏览器里算：榜单逻辑只有一份实现（scripts/build-index.mjs），
+              复制到前端迟早会漂移。上面「手动导出」留给你离线或备份用。
+            </p>
           </div>
 
           <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">

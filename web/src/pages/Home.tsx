@@ -4,6 +4,7 @@ import type { Entry, Manifest, Rankings } from '../types';
 import { fetchManifest, fetchMonth, fetchRankings } from '../lib/data';
 import { byDateDesc } from '../lib/date';
 import { SITE } from '../lib/site';
+import { useAccess } from '../lib/access';
 import { MasonryGrid } from '../components/MasonryGrid';
 import { MonthCard } from '../components/MonthCard';
 import { PreviewOverlay } from '../components/PreviewOverlay';
@@ -59,6 +60,7 @@ export function Home() {
   }, []);
 
   const closePreview = useCallback(() => setPreview(null), []);
+  const access = useAccess();
 
   return (
     <>
@@ -91,6 +93,29 @@ export function Home() {
       {!loading && !error && manifest && (
         <>
           <StatsBar manifest={manifest} />
+
+          {/* 访客得先知道"这里可以投稿"，否则流程做得再好也没人用 */}
+          {!access.canUpload && (
+            <section className="mt-6 rounded-2xl border border-accent/30 bg-accent-soft p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-accent-ink">
+                    手里也有群里的抽象素材？
+                  </p>
+                  <p className="mt-1 text-[12px] leading-5 text-ink-2">
+                    有 GitHub 账号就用投稿表单，不需要任何令牌，署名会自动记成你的账号；
+                    没有账号也可以直接发给站长。
+                  </p>
+                </div>
+                <Link
+                  to="/guide"
+                  className="shrink-0 rounded-xl bg-accent px-4 py-2 text-[13px] font-medium text-white shadow-sm shadow-accent/30 transition hover:bg-accent-bright"
+                >
+                  查看投稿指引
+                </Link>
+              </div>
+            </section>
+          )}
 
           {manifest.total === 0 ? (
             <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-surface p-10 text-center">

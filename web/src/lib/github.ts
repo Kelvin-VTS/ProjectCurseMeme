@@ -189,6 +189,62 @@ export interface IngestRun {
 }
 
 /**
+ * 一批**文本文件**（站长的编辑结果：月份 JSON）→ 一个 edit/<批次> 分支上的一个提交。
+ *
+ * 只提交月份 JSON，不碰 manifest / rankings —— 那两个是派生文件，
+ * 由 Actions 里的 build-index.mjs 重建，避免前端复制一份榜单逻辑。
+ *
+ * 文本用 encoding: 'utf-8' 直接提交，不用像素材那样 base64，省掉 1/3 体积和内存。
+ */
+export async function commitTextFiles(options: {
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+  message: string;
+  files: Array<{ path: string; text: string }>;
+}): Promise<BatchResult> {
+  const { token, owner, repo, branch, message, files } = options;
+  if (files.length === 0) throw new Error('没有要提交的改动');
+
+  const baseSha = await getDefaultBranchSha(token, owner, repo);
+  const baseTreeSha = await getBaseTreeSha(token, owner, repo, baseSha);
+
+  const entries: Array<{ path: string; mode: string; type: string; sha: string }> = [];
+  for (const file of files) {
+    const blob = await request<{ sha: string }>('POST', `${API}/repos/${owner}/${repo}/git/blobs`, token, {
+      content: file.text,
+      encoding: 'utf-8',
+    });
+    entries.push({ path: file.path, mode: '100644', type: 'blob', sha: blob.sha });
+  }
+
+  const tree = await request<{ sha: string }>('POST', `${API}/repos/${owner}/${repo}/git/trees`, token, {
+    base_tree: baseTreeSha,
+    tree: entries,
+  });
+
+  const commit = await request<{ sha: string; html_url: string }>(
+    'POST',
+    `${API}/repos/${owner}/${repo}/git/commits`,
+    token,
+    { message, tree: tree.sha, parents: [baseSha] },
+  );
+
+  await request('POST', `${API}/repos/${owner}/${repo}/git/refs`, token, {
+    ref: `refs/heads/${branch}`,
+    sha: commit.sha,
+  });
+
+  return {
+    branch,
+    commitSha: commit.sha,
+    commitUrl: commit.html_url,
+    branchUrl: `https://github.com/${owner}/${repo}/tree/${branch}`,
+  };
+}
+
+/**
  * 查某个分支上的 ingest 运行状态，用来在页面上直接告诉站长处理结果。
  * 刻意**不带 token**：公开仓库匿名就能读；而 fine-grained token 若没勾
  * Actions 权限反而会被拒，也省得为了看个进度再去扩权。

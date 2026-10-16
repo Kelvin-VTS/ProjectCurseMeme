@@ -1,0 +1,77 @@
+name: Rebuild index after edit
+
+# 站长在 /admin 的「编辑」页签改完点赞 / 上传者 / 标题 / 标签 / 可见性后，
+# 浏览器把**改动的月份 JSON**推到 edit/<批次> 分支，这里负责：
+#   1. 把改动合进 main
+#   2. 重建派生文件（manifest.json / rankings.json）
+#   3. 提交、删临时分支、触发 Pages 重新部署
+#
+# 为什么不在浏览器里算派生文件：榜单与索引逻辑只有一份实现
+# （scripts/build-index.mjs），复制到前端必然会和这边漂移。
+on:
+  push:
+    branches: ['edit/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write # 提交后触发 Pages 重新部署
+
+# 同一时刻只处理一批，两批同时往 main 推会互相顶掉
+concurrency:
+  group: edit-main
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 把编辑分支合进 main
+        run: |
+          set -uo pipefail
+          git fetch --no-tags origin "$BRANCH"
+          if ! git merge --ff-only FETCH_HEAD 2>/tmp/step-error.txt; then
+            echo "::warning::无法快进合并（main 可能已变动），改用普通合并"
+            if ! git merge --no-edit FETCH_HEAD 2>>/tmp/step-error.txt; then
+              echo "::error::合并编辑分支失败：$(cat /tmp/step-error.txt)"
+              exit 1
+            fi
+          fi
+          echo "合入后的最近提交："
+          git log --oneline -3
+
+      - name: 重建索引与榜单
+        run: node scripts/build-index.mjs
+
+      - name: 提交派生文件
+        run: |
+          set -euo pipefail
+          git config user.name  "cursememe-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "派生文件没有变化，无需额外提交"
+            exit 0
+          fi
+          git diff --cached --stat
+          git commit -q -m "index: 依据站长的编辑重建索引与榜单（$BRANCH）"
+          git push origin HEAD:main
+
+      - name: 删除编辑分支
+        run: git push origin --delete "$BRANCH"
+
+      - name: 触发 Pages 重新部署
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --ref main --repo "$GITHUB_REPOSITORY"
