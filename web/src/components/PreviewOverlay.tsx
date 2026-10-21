@@ -6,16 +6,21 @@ import { Avatar } from './Avatar';
 import { LikeButton } from './LikeButton';
 
 /**
- * 最小可用预览层。
- * 完整的详情弹窗（左右切换上一条/下一条）留到后续版本，
- * 这里只用来确认「图片能看全、视频能播、来源信息对」。
+ * 详情预览层：图片看全、视频能播、来源信息对，可左右切换上一条/下一条。
  */
 export function PreviewOverlay({
   entry,
   onClose,
+  onPrev,
+  onNext,
+  position,
 }: {
   entry: Entry | null;
   onClose: () => void;
+  /** 传了就启用左/右方向键和两侧按钮 */
+  onPrev?: () => void;
+  onNext?: () => void;
+  position?: { index: number; total: number };
 }) {
   const [mediaFailed, setMediaFailed] = useState(false);
   const entryId = entry?.id;
@@ -28,6 +33,8 @@ export function PreviewOverlay({
     if (!entry) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
+      else if (event.key === 'ArrowLeft' && onPrev) onPrev();
+      else if (event.key === 'ArrowRight' && onNext) onNext();
     };
     window.addEventListener('keydown', onKey);
     const previousOverflow = document.body.style.overflow;
@@ -36,7 +43,7 @@ export function PreviewOverlay({
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = previousOverflow;
     };
-  }, [entry, onClose]);
+  }, [entry, onClose, onPrev, onNext]);
 
   if (!entry) return null;
 
@@ -67,6 +74,7 @@ export function PreviewOverlay({
               {isVideo && typeof entry.duration === 'number'
                 ? ` · ${formatDuration(entry.duration)}`
                 : ''}
+              {position ? ` · ${position.index + 1}/${position.total}` : ''}
             </p>
           </div>
 
@@ -89,7 +97,28 @@ export function PreviewOverlay({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-auto bg-ink">
+        <div className="relative min-h-0 flex-1 overflow-auto bg-ink">
+          {onPrev && (
+            <button
+              type="button"
+              onClick={onPrev}
+              aria-label="上一条"
+              className="absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-full bg-black/50 px-3 py-4 text-lg leading-none text-white/90 backdrop-blur transition hover:bg-black/70"
+            >
+              ‹
+            </button>
+          )}
+          {onNext && (
+            <button
+              type="button"
+              onClick={onNext}
+              aria-label="下一条"
+              className="absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-full bg-black/50 px-3 py-4 text-lg leading-none text-white/90 backdrop-blur transition hover:bg-black/70"
+            >
+              ›
+            </button>
+          )}
+
           {isVideo && !mediaFailed ? (
             <video
               key={entry.id}

@@ -4,6 +4,8 @@ import { Home } from './pages/Home';
 import { MonthPage } from './pages/MonthPage';
 import { Admin } from './pages/Admin';
 import { Guide } from './pages/Guide';
+import { Login } from './pages/Login';
+import { Search } from './pages/Search';
 
 function NotFound() {
   return (
@@ -34,7 +36,9 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="month/:month" element={<MonthPage />} />
+        <Route path="search" element={<Search />} />
         <Route path="guide" element={<Guide />} />
+        <Route path="login" element={<Login />} />
         <Route path="admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />
       </Route>

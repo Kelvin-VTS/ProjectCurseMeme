@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { Entry, MonthFile } from '../types';
+import type { MonthFile } from '../types';
 import { fetchMonth } from '../lib/data';
 import { byDateDesc, formatMonthLabel, isValidMonth } from '../lib/date';
+import { usePreview } from '../lib/preview';
 import { MasonryGrid } from '../components/MasonryGrid';
 import { PreviewOverlay } from '../components/PreviewOverlay';
 
@@ -11,7 +12,6 @@ export function MonthPage() {
   const [file, setFile] = useState<MonthFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [preview, setPreview] = useState<Entry | null>(null);
 
   useEffect(() => {
     if (!isValidMonth(month)) {
@@ -44,7 +44,9 @@ export function MonthPage() {
     };
   }, [month]);
 
-  const closePreview = useCallback(() => setPreview(null), []);
+  // 这里直接用 file?.entries：下面的 `entries` 在早退分支之后才定义，
+  // 而 hook 必须无条件调用，只能放在早退之前。
+  const preview = usePreview(file?.entries ?? []);
 
   if (!isValidMonth(month)) {
     return (
@@ -104,10 +106,16 @@ export function MonthPage() {
       )}
 
       {!loading && !error && entries.length > 0 && (
-        <MasonryGrid entries={entries} onOpen={setPreview} />
+        <MasonryGrid entries={entries} onOpen={preview.open} />
       )}
 
-      <PreviewOverlay entry={preview} onClose={closePreview} />
+      <PreviewOverlay
+        entry={preview.entry}
+        onClose={preview.close}
+        onPrev={preview.prev}
+        onNext={preview.next}
+        position={preview.position}
+      />
     </>
   );
 }

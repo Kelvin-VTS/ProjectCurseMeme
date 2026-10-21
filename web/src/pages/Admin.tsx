@@ -215,6 +215,43 @@ export function Admin() {
     [],
   );
 
+  // 未登录：这一页只做引导。登录有自己的页面，不该在这里再塞一个表单。
+  if (access.checking && !access.login) {
+    return (
+      <div className="mx-auto max-w-md pt-10 text-center text-[12px] text-ink-3">
+        正在校验登录状态…
+      </div>
+    );
+  }
+
+  if (!access.canUpload) {
+    return (
+      <div className="mx-auto max-w-md pt-4 sm:pt-10">
+        <div className="rounded-2xl border border-line bg-surface p-6 text-center shadow-sm">
+          <p className="text-[15px] font-semibold text-ink">这个页面需要登录</p>
+          <p className="mt-2 text-[12px] leading-5 text-ink-2">
+            上传素材、修改已入库内容，都需要先把这台设备绑定到一个访问令牌上。
+            如果你只是来投稿，其实不用登录。
+          </p>
+          <div className="mt-4 space-y-2">
+            <Link
+              to="/login"
+              className="block rounded-xl bg-accent py-2.5 text-[13px] font-medium text-white shadow-sm shadow-accent/30 transition hover:bg-accent-bright"
+            >
+              去登录
+            </Link>
+            <Link
+              to="/guide"
+              className="block rounded-xl border border-line py-2.5 text-[12px] font-medium text-ink-2 transition hover:border-accent/40 hover:text-accent"
+            >
+              用投稿表单（不需要登录）
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-[1400px]">
       <header className="pb-4">
@@ -252,19 +289,6 @@ export function Admin() {
               : '访客身份'}
         </span>
       </div>
-
-      {!access.login && (
-        <div className="mb-4 rounded-2xl border border-accent/30 bg-accent-soft p-4">
-          <p className="text-[13px] font-semibold text-accent-ink">你还没有连接访问令牌</p>
-          <p className="mt-1 text-[12px] leading-5 text-ink-2">
-            上传功能需要令牌（站长或授权贡献者）。如果你是访客想投稿，请看{' '}
-            <Link to="/guide" className="font-medium text-accent hover:underline">
-              投稿指引
-            </Link>
-            ——那条路不需要任何账号。
-          </p>
-        </div>
-      )}
 
       {effectiveTab === 'upload' && <UploadPanel />}
 

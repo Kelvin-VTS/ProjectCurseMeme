@@ -110,3 +110,35 @@ export interface Rankings {
   /** 按年份倒序，每年的点赞榜 */
   yearly: RankGroup[];
 }
+
+/**
+ * 搜索索引里的一条：全站条目摊平后的最小字段集。
+ * 刻意不带 hash / size / mime / via 这类渲染用不到的字段——
+ * 搜索结果是一次性全量拉取的，体积直接影响打开速度。
+ */
+export interface SearchEntry {
+  id: string;
+  kind: MediaKind;
+  date: string;
+  /** 'YYYY-MM'，用于按月份筛选 */
+  month: string;
+  media: string;
+  poster?: string;
+  thumb: string;
+  width: number;
+  height: number;
+  duration?: number;
+  likes: number;
+  contributor: Contributor;
+  group?: string;
+  tags?: string[];
+  title?: string;
+  note?: string;
+}
+
+/** search.json：由 scripts/build-index.mjs 生成，按日期倒序 */
+export interface SearchIndex {
+  version: number;
+  total: number;
+  entries: SearchEntry[];
+}

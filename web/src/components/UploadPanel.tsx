@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { SITE } from '../lib/site';
 import { useAccess } from '../lib/access';
 import { formatBytes } from '../lib/date';
@@ -49,8 +50,7 @@ export function UploadPanel() {
   const { owner, name: repo } = SITE.repo;
   const access = useAccess();
 
-  // 令牌状态由全局 AccessProvider 管；这里只留输入框的草稿值
-  const [draftToken, setDraftToken] = useState('');
+  // 令牌状态由全局 AccessProvider 管；登录/绑定在 /login 页，这里不再自己收令牌
 
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -388,56 +388,38 @@ export function UploadPanel() {
       {/* ---------------- 右侧：鉴权 + 元数据 ---------------- */}
       <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
         <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <h2 className="text-[14px] font-semibold text-ink">访问令牌</h2>
-          {access.login ? (
-            <div className="mt-2.5">
-              <div className="flex items-center gap-2">
-                {access.avatarUrl && (
-                  <img src={access.avatarUrl} alt="" className="size-6 rounded-full ring-1 ring-black/10" />
-                )}
-                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
-                  已连接 {access.login}
-                  <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent-ink">
-                    {access.canEdit ? '站长' : '贡献者'}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={access.disconnect}
-                  className="shrink-0 text-[11px] text-ink-3 transition hover:text-like"
-                >
-                  断开
-                </button>
-              </div>
-              {!access.canEdit && (
-                <p className="mt-2 text-[11px] leading-4 text-accent-2">
-                  贡献者身份：可以上传素材，但改不了已入库内容（点赞 / 上传者 / 下架只有站长能改）。
-                </p>
-              )}
-            </div>
-          ) : (
-            <>
-              <input
-                type="password"
-                value={draftToken}
-                onChange={(event) => setDraftToken(event.target.value)}
-                placeholder="github_pat_..."
-                className="mt-2.5 w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 font-mono text-[12px] text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-              />
-              <button
-                type="button"
-                disabled={!draftToken.trim() || access.checking}
-                onClick={() => void access.connect(draftToken)}
-                className="mt-2 w-full rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-accent-bright disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {access.checking ? '校验中…' : '保存并校验'}
-              </button>
-              {access.error && <p className="mt-2 text-[11px] break-all text-like">{access.error}</p>}
-            </>
+          <h2 className="text-[14px] font-semibold text-ink">当前身份</h2>
+          <div className="mt-2.5 flex items-center gap-2">
+            {access.avatarUrl && (
+              <img src={access.avatarUrl} alt="" className="size-6 rounded-full ring-1 ring-black/10" />
+            )}
+            <span className="min-w-0 flex-1 truncate text-[12px] text-ink">{access.login}</span>
+            <span
+              className={[
+                'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                access.canEdit ? 'bg-accent-soft text-accent-ink' : 'bg-accent-2-soft text-accent-2',
+              ].join(' ')}
+            >
+              {access.canEdit ? '站长' : '贡献者'}
+            </span>
+            <Link
+              to="/login"
+              className="shrink-0 text-[11px] text-ink-3 transition hover:text-accent"
+            >
+              切换
+            </Link>
+          </div>
+          {!access.canEdit && (
+            <p className="mt-2 text-[11px] leading-4 text-accent-2">
+              贡献者身份：可以上传素材，但改不了已入库内容（点赞 / 上传者 / 下架只有站长能改）。
+            </p>
           )}
           <p className="mt-2.5 text-[11px] leading-4 text-ink-3">
-            需要 fine-grained token，权限只要 <b>Contents: Read and write</b>，仓库只勾{' '}
-            <code className="font-mono">{owner}/{repo}</code>。令牌只存在这台浏览器的 localStorage。
+            登录与令牌管理在{' '}
+            <Link to="/login" className="font-medium text-accent hover:underline">
+              登录页
+            </Link>
+            。令牌只存在这台浏览器的 localStorage。
           </p>
         </div>
 
@@ -487,7 +469,6 @@ export function UploadPanel() {
             {uploading ? '上传中…' : `上传 ${queue.length} 个素材`}
           </button>
 
-          {!access.login && <p className="mt-2 text-[11px] text-ink-3">先在上面填好访问令牌。</p>}
           {access.login && !access.canUpload && (
             <p className="mt-2 text-[11px] text-like">
               这个令牌对目标仓库没有写权限，检查是否勾了 Contents: Read and write。

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Entry, Manifest, Rankings } from '../types';
 import { fetchManifest, fetchMonth, fetchRankings } from '../lib/data';
 import { byDateDesc } from '../lib/date';
 import { SITE } from '../lib/site';
 import { useAccess } from '../lib/access';
+import { usePreview } from '../lib/preview';
 import { MasonryGrid } from '../components/MasonryGrid';
 import { MonthCard } from '../components/MonthCard';
 import { PreviewOverlay } from '../components/PreviewOverlay';
@@ -18,7 +19,6 @@ export function Home() {
   const [latest, setLatest] = useState<Entry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [preview, setPreview] = useState<Entry | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -59,8 +59,8 @@ export function Home() {
     };
   }, []);
 
-  const closePreview = useCallback(() => setPreview(null), []);
   const access = useAccess();
+  const preview = usePreview(latest);
 
   return (
     <>
@@ -139,7 +139,7 @@ export function Home() {
               {latest.length > 0 && (
                 <section className="pt-8">
                   <SectionHeading title="最近添加" hint={`最新 ${latest.length} 条`} />
-                  <MasonryGrid entries={latest} onOpen={setPreview} />
+                  <MasonryGrid entries={latest} onOpen={preview.open} />
                 </section>
               )}
 
@@ -158,7 +158,13 @@ export function Home() {
         </>
       )}
 
-      <PreviewOverlay entry={preview} onClose={closePreview} />
+      <PreviewOverlay
+        entry={preview.entry}
+        onClose={preview.close}
+        onPrev={preview.prev}
+        onNext={preview.next}
+        position={preview.position}
+      />
     </>
   );
 }

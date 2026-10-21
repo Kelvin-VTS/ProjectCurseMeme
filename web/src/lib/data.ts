@@ -1,4 +1,4 @@
-import type { Manifest, MonthFile, Rankings } from '../types';
+import type { Manifest, MonthFile, Rankings, SearchIndex } from '../types';
 
 /**
  * 数据与媒体地址解析。
@@ -44,4 +44,12 @@ export function fetchMonth(month: string): Promise<MonthFile> {
 
 export function fetchRankings(): Promise<Rankings> {
   return getJson<Rankings>(withVersion(`${DATA_BASE}/rankings.json`));
+}
+
+/**
+ * 全站搜索索引。只在 /search 页按需加载——
+ * 首页和月份页不该为它付带宽。
+ */
+export function fetchSearch(): Promise<SearchIndex> {
+  return getJson<SearchIndex>(withVersion(`${DATA_BASE}/search.json`));
 }

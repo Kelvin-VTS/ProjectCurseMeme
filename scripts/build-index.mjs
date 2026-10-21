@@ -66,6 +66,33 @@ function rankItem(entry, month) {
   return item;
 }
 
+/**
+ * 搜索索引里的一条：渲染一张卡片所需的全部字段。
+ * 刻意摊平成单个文件 —— /search 只拉这一个就能在前端过滤，
+ * 否则得逐月拉取，月份一多请求数就线性上涨。
+ */
+function searchItem(entry, month) {
+  const item = {
+    id: entry.id,
+    kind: entry.kind,
+    date: entry.date,
+    month,
+    media: entry.media,
+    poster: entry.poster,
+    thumb: entry.thumb,
+    width: entry.width,
+    height: entry.height,
+    likes: entry.likes ?? 0,
+    contributor: entry.contributor,
+  };
+  if (entry.duration) item.duration = entry.duration;
+  if (entry.group) item.group = entry.group;
+  if (entry.tags?.length) item.tags = entry.tags;
+  if (entry.title) item.title = entry.title;
+  if (entry.note) item.note = entry.note;
+  return item;
+}
+
 async function main() {
   const files = (await readdir(MONTH_DIR)).filter((name) => /^\d{4}-\d{2}\.json$/.test(name));
   if (files.length === 0) {
@@ -132,6 +159,15 @@ async function main() {
 
   const rankings = { version: 1, monthly, yearly };
 
+  // 全站摊平的搜索索引，按日期倒序（搜索结果默认就是这个顺序）
+  const search = {
+    version: 1,
+    total: manifest.total,
+    entries: months.flatMap((m) =>
+      [...m.entries].sort(byDateDesc).map((entry) => searchItem(entry, m.month)),
+    ),
+  };
+
   await writeFile(
     path.join(DATA_DIR, 'manifest.json'),
     `${JSON.stringify(manifest, null, 2)}\n`,
@@ -140,6 +176,11 @@ async function main() {
   await writeFile(
     path.join(DATA_DIR, 'rankings.json'),
     `${JSON.stringify(rankings, null, 2)}\n`,
+    'utf8',
+  );
+  await writeFile(
+    path.join(DATA_DIR, 'search.json'),
+    `${JSON.stringify(search)}\n`,
     'utf8',
   );
 
@@ -153,6 +194,9 @@ async function main() {
     console.log(`  年榜 ${group.label}  首位点赞 ${top ? top.likes : 0}`);
   }
   console.log(`rankings.json  ${monthly.length} 个月榜 / ${yearly.length} 个年榜`);
+  console.log(
+    `search.json    ${search.entries.length} 条  ${(JSON.stringify(search).length / 1024).toFixed(1)} KB`,
+  );
 }
 
 await main();

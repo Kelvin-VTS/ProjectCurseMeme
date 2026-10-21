@@ -6,9 +6,10 @@ import { useAccess } from '../lib/access';
 export function Layout() {
   const access = useAccess();
 
-  // 导航按角色变化：访客只能看到投稿指引，站长/贡献者才有上传入口
+  // 导航按角色变化：访客只看到投稿指引，站长/贡献者才有上传入口
   const nav = [
     { to: '/', label: '首页', end: true },
+    { to: '/search', label: '搜索', end: false },
     { to: '/guide', label: '投稿指引', end: false },
     ...(access.canUpload
       ? [{ to: '/admin', label: access.canEdit ? '上传 / 管理' : '上传', end: false }]
@@ -58,8 +59,8 @@ export function Layout() {
 
             {access.login ? (
               <NavLink
-                to="/admin"
-                title={`${access.canEdit ? '站长' : '贡献者'} · ${access.login}`}
+                to="/login"
+                title={`${access.canEdit ? '站长' : '贡献者'} · ${access.login}（点这里管理登录状态）`}
                 className="ml-1 flex items-center gap-1.5 rounded-xl border border-line px-2 py-1 transition hover:border-accent/40"
               >
                 {access.avatarUrl && (
@@ -76,13 +77,19 @@ export function Layout() {
                 </span>
               </NavLink>
             ) : (
-              <span
-                aria-disabled="true"
-                title="搜索与筛选将在后续版本实现"
-                className="cursor-not-allowed rounded-xl px-3 py-1.5 text-[13px] text-ink-3/60"
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  [
+                    'ml-1 rounded-xl border px-3 py-1.5 text-[13px] font-medium transition',
+                    isActive
+                      ? 'border-accent bg-accent text-white shadow-sm shadow-accent/30'
+                      : 'border-line text-ink-2 hover:border-accent/40 hover:text-accent',
+                  ].join(' ')
+                }
               >
-                搜索
-              </span>
+                登录
+              </NavLink>
             )}
           </nav>
         </div>
