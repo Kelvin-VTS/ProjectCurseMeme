@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "total": 13,
+  "total": 12,
   "totalLikes": 439,
   "months": [
     {
       "month": "2026-10",
-      "count": 9,
-      "cover": "media/2026-10/7f04aafde1cd.thumb.webp",
-      "latest": "2026-10-23"
+      "count": 8,
+      "cover": "media/placeholder/p01.webp",
+      "latest": "2026-10-18"
     },
     {
       "month": "2026-09",
