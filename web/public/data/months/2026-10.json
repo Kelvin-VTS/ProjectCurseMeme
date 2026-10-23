@@ -2,6 +2,33 @@
   "month": "2026-10",
   "entries": [
     {
+      "id": "7f04aafde1cd",
+      "kind": "image",
+      "date": "2026-10-23",
+      "createdAt": "2026-10-23T08:43:04.351Z",
+      "media": "media/2026-10/7f04aafde1cd.png",
+      "poster": "media/2026-10/7f04aafde1cd.poster.webp",
+      "thumb": "media/2026-10/7f04aafde1cd.thumb.webp",
+      "width": 96,
+      "height": 96,
+      "size": 341,
+      "mime": "image/png",
+      "hash": "7f04aafde1cdf0aed1c45aec37d657bceba3156fb039bfd06f9eded8b5d27a30",
+      "likes": 0,
+      "contributor": {
+        "login": "Kelvin-VTS",
+        "avatar": "https://github.com/Kelvin-VTS.png"
+      },
+      "via": "cli",
+      "visible": true,
+      "processedAt": "2026-10-23T08:43:04.351Z",
+      "group": "bot-test",
+      "tags": [
+        "bot",
+        "smoke"
+      ]
+    },
+    {
       "id": "a1b2c3d4e5f6",
       "kind": "video",
       "date": "2026-10-18",
