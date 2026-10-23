@@ -11,7 +11,8 @@
     "seed": "python scripts/seed-fake-data.py",
     "icons": "python scripts/make-icons.py",
     "ingest": "node scripts/ingest-batch.mjs",
-    "test:issue": "node scripts/test-ingest-issue.mjs"
+    "test:issue": "node scripts/test-ingest-issue.mjs",
+    "test:admin": "node scripts/test-admin.mjs"
   },
   "devDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

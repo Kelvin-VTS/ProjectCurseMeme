@@ -65,6 +65,13 @@ export function AccessProvider({ children }: { children: ReactNode }) {
         window.localStorage.setItem(LOGIN_KEY, result.login);
         return true;
       } catch (err) {
+        // 只在“令牌被拒”时清掉本地旧 token；网络抖动不该把用户踢下线。
+        // 401/403/404 分别对应失效、权限不足、看不到这个仓库。
+        const status = (err as { status?: number } | null)?.status;
+        if (status === 401 || status === 403 || status === 404) {
+          window.localStorage.removeItem(TOKEN_KEY);
+          window.localStorage.removeItem(LOGIN_KEY);
+        }
         setInfo(null);
         setToken('');
         setError(err instanceof Error ? err.message : String(err));

@@ -1,0 +1,19 @@
+{
+  "name": "dsh-cursememe-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "阴间素材库站长能力：DSH 插件 + GitHub API 客户端",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./lib/*": "./lib/*",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "UNLICENSED"
+}

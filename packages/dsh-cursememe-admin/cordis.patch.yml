@@ -1,0 +1,9 @@
+# 插件挂载点。
+#
+# 只插入一个 Host 插件；配置文件路径默认 ~/.dsh/secrets/cursememe-admin.json，
+# 也可以在 configPath 里显式给。secret 本身不写在这里。
+- insert:
+    - id: dsh-cursememe-admin
+      name: 'dsh-cursememe-admin'
+      config:
+        configPath: ''
