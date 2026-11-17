@@ -10,13 +10,20 @@ export function MonthCard({ item }: { item: MonthSummary }) {
       className="group block overflow-hidden rounded-2xl border border-line bg-surface shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-2">
-        <img
-          src={mediaUrl(item.cover)}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-        />
+        {item.cover ? (
+          <img
+            src={mediaUrl(item.cover)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          /* 整月只有文字记录时没有封面，用渐变占位，不留破图 */
+          <div className="grid h-full w-full place-items-center bg-gradient-to-br from-accent-soft to-accent-2-soft">
+            <span className="text-[11px] font-medium text-accent-2">只有文字记录</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/25 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-3.5">
           <p className="text-[15px] font-semibold text-white">{formatMonthLabel(item.month)}</p>

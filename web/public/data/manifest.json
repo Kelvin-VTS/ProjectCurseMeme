@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "total": 13,
+  "total": 15,
   "totalLikes": 439,
   "months": [
     {
       "month": "2026-10",
-      "count": 9,
+      "count": 11,
       "cover": "media/2026-10/9cec2b9cb0c3.thumb.webp",
       "latest": "2026-10-26"
     },

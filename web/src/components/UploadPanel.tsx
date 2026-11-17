@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { SITE } from '../lib/site';
 import { useAccess } from '../lib/access';
 import { formatBytes } from '../lib/date';
+import { makeBatchId, today } from '../lib/batch';
 import {
   MAX_FILE_SIZE,
   WARN_FILE_SIZE,
@@ -32,20 +33,6 @@ interface QueueItem {
   error?: string;
 }
 
-function makeBatchId(): string {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, '0');
-  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  const salt = Math.random().toString(36).slice(2, 6);
-  return `${stamp}-${salt}`;
-}
-
-function today(): string {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
 export function UploadPanel() {
   const { owner, name: repo } = SITE.repo;
   const access = useAccess();
@@ -57,6 +44,8 @@ export function UploadPanel() {
   const [date, setDate] = useState(today);
   const [group, setGroup] = useState('');
   const [tags, setTags] = useState('');
+  const [title, setTitle] = useState('');
+  const [note, setNote] = useState('');
   const [login, setLogin] = useState('');
 
   const [uploading, setUploading] = useState(false);
@@ -187,6 +176,8 @@ export function UploadPanel() {
           date,
           group: group.trim(),
           tags: tagList,
+          title: title.trim(),
+          note: note.trim(),
         },
         onFile: onFileEvent,
       });
@@ -450,6 +441,26 @@ export function UploadPanel() {
                 className={FIELD}
               />
             </Labeled>
+            <Labeled label="标题（可留空）">
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="这一条叫什么"
+                className={FIELD}
+              />
+            </Labeled>
+            <label className="block">
+              <span className="mb-1 block text-[10px] text-ink-3">
+                文字说明（可留空）· 支持 Markdown
+              </span>
+              <textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                rows={4}
+                placeholder={'随手写几句，支持 **粗体**、- 列表、[链接](https://…)'}
+                className={`${FIELD} resize-y leading-5`}
+              />
+            </label>
             <Labeled label="上传者署名">
               <input
                 value={login}

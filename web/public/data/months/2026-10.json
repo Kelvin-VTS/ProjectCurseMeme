@@ -25,6 +25,50 @@
       "duration": 42.84
     },
     {
+      "id": "e82ff6bcee11",
+      "kind": "text",
+      "date": "2026-10-24",
+      "createdAt": "2026-11-17T13:25:35.518Z",
+      "hash": "e82ff6bcee11ae405d1796be240c204e4964b373d0518f7f3b6b5dfc94e44063",
+      "likes": 0,
+      "note": "## 那天发生了什么\n\n凌晨三点，群里突然安静了。然后有人发了一句：\n\n> 你们听到楼上的声音了吗\n\n接下来是 **长达十分钟的沉默**。\n\n- 第一个人说没有\n- 第二个人说没有\n- 第三个人说他住顶楼\n\n后来大家才知道，那个群的成员列表里，多了一个人。\n\n`（本条为示例内容，用于演示 Markdown 渲染。）`",
+      "contributor": {
+        "login": "Kelvin-VTS",
+        "avatar": "https://github.com/Kelvin-VTS.png"
+      },
+      "via": "web",
+      "visible": true,
+      "processedAt": "2026-11-17T13:25:35.518Z",
+      "title": "示例：带 Markdown 排版的记录",
+      "group": "示例",
+      "tags": [
+        "示例",
+        "文字"
+      ]
+    },
+    {
+      "id": "9b53ee12b223",
+      "kind": "text",
+      "date": "2026-10-24",
+      "createdAt": "2026-11-17T13:25:35.511Z",
+      "hash": "9b53ee12b223f20ebba4c38417a2cf52fd64a78bbe16ddc124d4f00d4b4f74ee",
+      "likes": 0,
+      "note": "有些东西不需要图，一句话就够阴间了。\n\n这条是示例，用来演示「纯文字记录」：没有图片也没有视频，直接在首页成一条卡片，带署名和点赞。",
+      "contributor": {
+        "login": "Kelvin-VTS",
+        "avatar": "https://github.com/Kelvin-VTS.png"
+      },
+      "via": "web",
+      "visible": true,
+      "processedAt": "2026-11-17T13:25:35.511Z",
+      "title": "示例：一句话的纯文字记录",
+      "group": "示例",
+      "tags": [
+        "示例",
+        "文字"
+      ]
+    },
+    {
       "id": "7f04aafde1cd",
       "kind": "image",
       "date": "2026-10-23",
@@ -50,7 +94,8 @@
         "bot",
         "smoke"
       ],
-      "title": "bot 连通性测试（已下架）"
+      "title": "bot 连通性测试（已下架）",
+      "note": "这张是群里公认的**年度最佳**。\n\n画面里没有人，但每个人看了都觉得被冒犯了。"
     },
     {
       "id": "a1b2c3d4e5f6",
@@ -102,7 +147,8 @@
       "via": "cli",
       "visible": true,
       "processedAt": "2026-10-16T11:59:31.498Z",
-      "duration": 43.44
+      "duration": 43.44,
+      "note": "走廊尽头那段视频，**声音比画面更让人不安**。\n\n拍到一半灯开始闪，然后就断了。"
     },
     {
       "id": "15c9bfd3caab",
@@ -124,7 +170,8 @@
       },
       "via": "cli",
       "visible": true,
-      "processedAt": "2026-10-16T10:01:30.228Z"
+      "processedAt": "2026-10-16T10:01:30.228Z",
+      "note": "电梯里的那三十秒，**没有人按楼层**。\n\n- 门开了两次\n- 每次都没人\n\n> 最后停在了一个不存在的楼层。"
     },
     {
       "id": "b2c3d4e5f6a1",

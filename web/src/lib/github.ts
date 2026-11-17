@@ -161,6 +161,10 @@ export interface BatchMeta {
   date?: string;
   group?: string;
   tags: string[];
+  /** 标题（可选） */
+  title?: string;
+  /** Markdown 正文 / 图文说明（可选） */
+  note?: string;
 }
 
 export type FilePhase = 'encode' | 'upload' | 'done' | 'failed';
@@ -346,13 +350,16 @@ export async function uploadBatch(options: {
     ...(meta.date ? { date: meta.date } : {}),
     ...(meta.group ? { group: meta.group } : {}),
     ...(meta.tags.length > 0 ? { tags: meta.tags } : {}),
+    ...(meta.title ? { title: meta.title } : {}),
+    ...(meta.note ? { note: meta.note } : {}),
     files: entries.map((entry) => entry.path.replace('incoming/', '')),
   };
+  // 文本走 utf-8 编码：GitHub 的 blobs 接口原生支持，不必手工 base64
   const jobBlob = await request<{ sha: string }>(
     'POST',
     `${API}/repos/${owner}/${repo}/git/blobs`,
     token,
-    { content: btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(job, null, 2)))), encoding: 'base64' },
+    { content: JSON.stringify(job, null, 2), encoding: 'utf-8' },
   );
   entries.push({ path: 'incoming/job.json', mode: '100644', type: 'blob', sha: jobBlob.sha });
 
@@ -368,6 +375,92 @@ export async function uploadBatch(options: {
     token,
     {
       message: `upload: ${files.length} 个素材（${meta.batch}）`,
+      tree: tree.sha,
+      parents: [baseSha],
+    },
+  );
+
+  await request('POST', `${API}/repos/${owner}/${repo}/git/refs`, token, {
+    ref: `refs/heads/${branch}`,
+    sha: commit.sha,
+  });
+
+  return {
+    branch,
+    commitSha: commit.sha,
+    commitUrl: commit.html_url,
+    branchUrl: `https://github.com/${owner}/${repo}/tree/${branch}`,
+  };
+}
+
+export interface TextPostInput {
+  batch: string;
+  login: string;
+  /** Markdown 正文 */
+  note: string;
+  title?: string;
+  date?: string;
+  group?: string;
+  tags: string[];
+}
+
+/**
+ * 纯文字记录 → 一个 staging 分支上的一个提交（只有 job.json，没有素材文件）。
+ *
+ * 和素材上传走**同一条**流水线：job.json 里带 posts，ingest 侧的 add-posts 步骤
+ * 把它写成月份 JSON 里 kind:'text' 的条目，再统一重建索引。
+ * 这样「文字记录」不必在浏览器里算 id / 去重 / 归月 —— 一处实现。
+ */
+export async function submitTextPost(options: {
+  token: string;
+  owner: string;
+  repo: string;
+  post: TextPostInput;
+}): Promise<BatchResult> {
+  const { token, owner, repo, post } = options;
+
+  const note = post.note.trim();
+  if (!note) throw new Error('正文不能为空');
+
+  const baseSha = await getDefaultBranchSha(token, owner, repo);
+  const baseTreeSha = await getBaseTreeSha(token, owner, repo, baseSha);
+
+  const job = {
+    version: 1,
+    batch: post.batch,
+    login: post.login,
+    createdAt: new Date().toISOString(),
+    ...(post.date ? { date: post.date } : {}),
+    ...(post.group ? { group: post.group } : {}),
+    ...(post.tags.length > 0 ? { tags: post.tags } : {}),
+    posts: [
+      {
+        ...(post.title ? { title: post.title } : {}),
+        note,
+      },
+    ],
+    files: [],
+  };
+
+  const blob = await request<{ sha: string }>(
+    'POST',
+    `${API}/repos/${owner}/${repo}/git/blobs`,
+    token,
+    { content: JSON.stringify(job, null, 2), encoding: 'utf-8' },
+  );
+
+  const tree = await request<{ sha: string }>('POST', `${API}/repos/${owner}/${repo}/git/trees`, token, {
+    base_tree: baseTreeSha,
+    tree: [{ path: 'incoming/job.json', mode: '100644', type: 'blob', sha: blob.sha }],
+  });
+
+  const branch = `staging/${post.batch}`;
+  const commit = await request<{ sha: string; html_url: string }>(
+    'POST',
+    `${API}/repos/${owner}/${repo}/git/commits`,
+    token,
+    {
+      message: `post: 一条文字记录（${post.batch}）`,
       tree: tree.sha,
       parents: [baseSha],
     },

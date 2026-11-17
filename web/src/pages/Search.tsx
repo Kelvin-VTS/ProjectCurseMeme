@@ -6,7 +6,7 @@ import { usePreview } from '../lib/preview';
 import { MasonryGrid } from '../components/MasonryGrid';
 import { PreviewOverlay } from '../components/PreviewOverlay';
 
-type KindFilter = 'all' | 'image' | 'video';
+type KindFilter = 'all' | 'image' | 'video' | 'text';
 type SortKey = 'new' | 'likes';
 
 /**
@@ -18,9 +18,6 @@ function toEntry(item: SearchEntry): Entry {
   return {
     ...item,
     createdAt: item.date,
-    poster: item.poster ?? item.thumb,
-    size: 0,
-    mime: '',
     hash: item.id,
     via: 'cli',
     visible: true,
@@ -76,7 +73,6 @@ export function Search() {
       if (!needle) return true;
       return haystackOf(item).includes(needle);
     });
-
     // source 本身按日期倒序；sort 是稳定排序，同赞数自然保持日期顺序
     const sorted = sort === 'likes' ? [...filtered].sort((a, b) => b.likes - a.likes) : filtered;
     return sorted.map(toEntry);
@@ -117,6 +113,7 @@ export function Search() {
                 ['all', '全部'],
                 ['image', '图片'],
                 ['video', '视频'],
+                ['text', '文字'],
               ] as const
             ).map(([key, label]) => (
               <button

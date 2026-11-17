@@ -77,19 +77,21 @@ function searchItem(entry, month) {
     kind: entry.kind,
     date: entry.date,
     month,
-    media: entry.media,
-    poster: entry.poster,
-    thumb: entry.thumb,
-    width: entry.width,
-    height: entry.height,
     likes: entry.likes ?? 0,
     contributor: entry.contributor,
   };
+  // 媒体字段按需带上：文字记录没有这些字段，不该在索引里塞 null / 空串
+  if (entry.media) item.media = entry.media;
+  if (entry.poster) item.poster = entry.poster;
+  if (entry.thumb) item.thumb = entry.thumb;
+  if (entry.width) item.width = entry.width;
+  if (entry.height) item.height = entry.height;
   if (entry.duration) item.duration = entry.duration;
   if (entry.group) item.group = entry.group;
   if (entry.tags?.length) item.tags = entry.tags;
   if (entry.title) item.title = entry.title;
-  if (entry.note) item.note = entry.note;
+  // 正文要截断：搜索索引是全量一次性拉取的，一条长文不该把整份索引撑大
+  if (entry.note) item.note = entry.note.length > 1200 ? `${entry.note.slice(0, 1200)}…` : entry.note;
   return item;
 }
 
@@ -123,28 +125,38 @@ async function main() {
       .filter((m) => m.entries.length > 0)
       .map((m) => {
         const newest = [...m.entries].sort(byDateDesc)[0];
+        // 封面只从有缩略图的条目里挑：整月都是文字记录时就没有封面，前端会退化成渐变色块
+        const coverEntry = [...m.entries].filter((entry) => entry.thumb).sort(byDateDesc)[0];
         return {
           month: m.month,
           count: m.entries.length,
-          cover: newest.thumb,
+          ...(coverEntry ? { cover: coverEntry.thumb } : {}),
           latest: newest.date,
         };
       }),
   };
+
+  // 榜单以「缩略图 + 点赞」为单位展示，纯文字记录没有图，所以不参与排名。
+  // 它们仍然计入 manifest 的条目数与总点赞，也仍然可以被点赞。
+  const rankable = (entries) => entries.filter((entry) => entry.kind !== 'text' && entry.thumb);
 
   const monthly = months
     .filter((m) => m.entries.length > 0)
     .map((m) => ({
       key: m.month,
       label: monthLabel(m.month),
-      items: [...m.entries].sort(byLikesDesc).slice(0, TOP_N).map((entry) => rankItem(entry, m.month)),
-    }));
+      items: rankable(m.entries)
+        .sort(byLikesDesc)
+        .slice(0, TOP_N)
+        .map((entry) => rankItem(entry, m.month)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const byYear = new Map();
   for (const m of months) {
     const year = m.month.slice(0, 4);
     if (!byYear.has(year)) byYear.set(year, []);
-    for (const entry of m.entries) byYear.get(year).push({ entry, month: m.month });
+    for (const entry of rankable(m.entries)) byYear.get(year).push({ entry, month: m.month });
   }
   const yearly = [...byYear.entries()]
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))

@@ -72,6 +72,10 @@ interface Options {
   group?: string;
   tags: string[];
   login: string;
+  /** 标题（可选，写进条目的 title） */
+  title?: string;
+  /** 正文 / 图文说明（Markdown，可选，写进条目的 note） */
+  note?: string;
   maxEdge: number;
   crf: number;
   preset: string;
@@ -121,6 +125,8 @@ function parseArgs(argv: string[]): Options {
       case '--group': opts.group = take(); break;
       case '--tags': opts.tags = take().split(/[,，]/).map((t) => t.trim()).filter(Boolean); break;
       case '--login': opts.login = take(); break;
+      case '--title': opts.title = take(); break;
+      case '--note': opts.note = take(); break;
       case '--max-edge': opts.maxEdge = Number(take()); break;
       case '--crf': opts.crf = Number(take()); break;
       case '--preset': opts.preset = take(); break;
@@ -154,6 +160,8 @@ const HELP = `
   --group <名称>        来源 / 群名
   --tags <a,b>          标签，逗号分隔
   --login <GitHub 名>   上传者署名，默认 ${DEFAULT_LOGIN}
+  --title <标题>        标题，写进条目的 title
+  --note <正文>         图文说明 / 正文（Markdown），写进条目的 note
   --inbox <目录>        默认 inbox/
   --max-edge <像素>     长边上限，默认 1280
   --crf <数值>          H.264 质量，越小越清晰，默认 24
@@ -306,6 +314,7 @@ function buildEntry(opts: Options, fields: CommonFields, extra: Partial<Entry>):
     ...(opts.group ? { group: opts.group } : {}),
     ...(opts.tags.length > 0 ? { tags: opts.tags } : {}),
     ...(fields.title ? { title: fields.title } : {}),
+    ...(opts.note ? { note: opts.note } : {}),
     ...extra,
   };
 }

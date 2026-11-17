@@ -14,14 +14,30 @@ function columnsForWidth(width: number): number {
 
 /**
  * 卡片里除图片以外部分的高度估算（px），参与分列时的高度累计。
- * 卡片结构变了（新增上传者行和点赞行）就要同步改这里，否则列高会算歪。
+ * 卡片结构变了（新增上传者行、正文摘要、点赞行）就要同步改这里，否则列高会算歪。
  *   上传者行 ≈ 34 + 底部信息（内边距 + 点赞行）≈ 52
  */
 function estimateMetaHeight(entry: Entry): number {
   let height = 86;
   if (entry.title) height += 20;
+  if (entry.note) height += 48; // 卡片底部的正文摘要（2~3 行）
   if (entry.tags && entry.tags.length > 0) height += 24;
   return height;
+}
+
+/**
+ * 估算整张卡片的高度，只用于「放进最短列」的平衡，不需要精确。
+ * 文字条目没有图，高度随正文长度增长；媒体条目按宽高比算。
+ */
+function estimateCardHeight(entry: Entry, columnWidth: number): number {
+  if (entry.kind === 'text') {
+    const chars = (entry.note ?? '').length;
+    const perLine = Math.max(8, Math.floor(columnWidth / 13)); // 一行大约几个汉字
+    const lines = Math.min(8, Math.max(2, Math.ceil(chars / perLine)));
+    return lines * 24 + estimateMetaHeight(entry) + 20;
+  }
+  const ratio = entry.width && entry.height && entry.width > 0 ? entry.height / entry.width : 3 / 4;
+  return ratio * columnWidth + estimateMetaHeight(entry);
 }
 
 /**
@@ -66,8 +82,7 @@ export function MasonryGrid({
         if (heights[i] < heights[target]) target = i;
       }
       buckets[target].push(entry);
-      const ratio = entry.width > 0 ? entry.height / entry.width : 1;
-      heights[target] += ratio * columnWidth + estimateMetaHeight(entry);
+      heights[target] += estimateCardHeight(entry, columnWidth);
     }
     return buckets;
   }, [entries, layout]);

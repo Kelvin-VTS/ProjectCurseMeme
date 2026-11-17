@@ -4,6 +4,7 @@ import { fetchManifest, fetchMonth, mediaUrl } from '../lib/data';
 import { formatMonthLabel } from '../lib/date';
 import { Avatar } from '../components/Avatar';
 import { UploadPanel } from '../components/UploadPanel';
+import { TextComposer } from '../components/TextComposer';
 import { useAccess } from '../lib/access';
 import { SITE } from '../lib/site';
 import { commitTextFiles, fetchIngestRun, type IngestRun } from '../lib/github';
@@ -25,6 +26,8 @@ interface Draft {
   login?: string;
   title?: string;
   tags?: string;
+  /** Markdown 正文 / 图文说明 */
+  note?: string;
   visible?: boolean;
 }
 
@@ -56,6 +59,11 @@ function applyDrafts(entries: Entry[], drafts: DraftMap): Entry[] {
         .filter(Boolean);
       if (tags.length > 0) next.tags = tags;
       else delete next.tags;
+    }
+    if (draft.note !== undefined) {
+      const note = draft.note.trim();
+      if (note) next.note = note;
+      else delete next.note;
     }
     if (draft.visible !== undefined) next.visible = draft.visible;
 
@@ -106,6 +114,8 @@ export function Admin() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<'upload' | 'edit'>('upload');
+  /** 上传页签下的发布类型 */
+  const [composer, setComposer] = useState<'media' | 'text'>('media');
 
   // 一键提交：只推改动的月份 JSON，派生文件交给 Actions 重建
   const [editPhase, setEditPhase] = useState<'idle' | 'submitting' | 'done' | 'failed'>('idle');
@@ -290,7 +300,41 @@ export function Admin() {
         </span>
       </div>
 
-      {effectiveTab === 'upload' && <UploadPanel />}
+      {effectiveTab === 'upload' && (
+        <>
+          {/* 上传页签下的两种发布类型：媒体素材 / 纯文字记录 */}
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface p-2 shadow-sm">
+            <span className="pl-1 text-[11px] text-ink-3">发布类型</span>
+            <div className="flex rounded-lg border border-line p-0.5">
+              {(
+                [
+                  ['media', '图片 / 视频'],
+                  ['text', '文字记录'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setComposer(key)}
+                  className={[
+                    'rounded-md px-3 py-1 text-[12px] font-medium transition',
+                    composer === key ? 'bg-accent text-white' : 'text-ink-3 hover:text-ink',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] text-ink-3">
+              {composer === 'media'
+                ? '拖入文件，可另附一段 Markdown 说明'
+                : '只发一段文字，支持 Markdown'}
+            </span>
+          </div>
+
+          {composer === 'media' ? <UploadPanel /> : <TextComposer />}
+        </>
+      )}
 
       {effectiveTab === 'edit' && (
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
@@ -328,12 +372,18 @@ export function Admin() {
                         key={entry.id}
                         className="flex flex-wrap items-center gap-3 border-t border-line px-3 py-2.5 first:border-t-0"
                       >
-                        <img
-                          src={mediaUrl(entry.thumb)}
-                          alt=""
-                          loading="lazy"
-                          className="size-14 shrink-0 rounded-xl object-cover ring-1 ring-black/5"
-                        />
+                        {entry.thumb ? (
+                          <img
+                            src={mediaUrl(entry.thumb)}
+                            alt=""
+                            loading="lazy"
+                            className="size-14 shrink-0 rounded-xl object-cover ring-1 ring-black/5"
+                          />
+                        ) : (
+                          <div className="grid size-14 shrink-0 place-items-center rounded-xl bg-accent-2-soft text-[10px] font-medium text-accent-2 ring-1 ring-black/5">
+                            文字
+                          </div>
+                        )}
 
                         <div className="grid min-w-[260px] flex-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                           <Field label="上传者（GitHub 登录名）">
@@ -374,6 +424,19 @@ export function Admin() {
                               placeholder="抽象,搞笑"
                               onChange={(event) => update(entry.id, { tags: event.target.value })}
                               className={INPUT}
+                            />
+                          </Field>
+                        </div>
+
+                        {/* 正文占一整行：文字记录的全文、媒体条目的图文说明 */}
+                        <div className="w-full min-w-[260px] flex-1">
+                          <Field label={`正文（Markdown）${entry.kind === 'text' ? ' · 纯文字记录的全部内容' : ''}`}>
+                            <textarea
+                              value={draft.note ?? entry.note ?? ''}
+                              placeholder="可留空。支持 Markdown：**粗体**、- 列表、[链接](https://…)"
+                              onChange={(event) => update(entry.id, { note: event.target.value })}
+                              rows={entry.kind === 'text' ? 4 : 2}
+                              className={`${INPUT} resize-y leading-5`}
                             />
                           </Field>
                         </div>
