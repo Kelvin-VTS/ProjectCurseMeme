@@ -1,0 +1,27 @@
+{
+  "month": "2026-11",
+  "entries": [
+    {
+      "id": "5542f0759022",
+      "kind": "image",
+      "date": "2026-11-19",
+      "createdAt": "2026-11-19T06:34:41.304Z",
+      "media": "media/2026-11/5542f0759022.png",
+      "poster": "media/2026-11/5542f0759022.poster.webp",
+      "thumb": "media/2026-11/5542f0759022.thumb.webp",
+      "width": 1143,
+      "height": 774,
+      "size": 88203,
+      "mime": "image/png",
+      "hash": "5542f0759022818da536738cf330dbb2bddd80f8f6079ccb9a406443e12ccd4d",
+      "likes": 0,
+      "contributor": {
+        "login": "Kelvin-VTS",
+        "avatar": "https://github.com/Kelvin-VTS.png"
+      },
+      "via": "cli",
+      "visible": true,
+      "processedAt": "2026-11-19T06:34:41.304Z"
+    }
+  ]
+}

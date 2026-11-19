@@ -1,8 +1,14 @@
 {
   "version": 1,
-  "total": 15,
+  "total": 16,
   "totalLikes": 439,
   "months": [
+    {
+      "month": "2026-11",
+      "count": 1,
+      "cover": "media/2026-11/5542f0759022.thumb.webp",
+      "latest": "2026-11-19"
+    },
     {
       "month": "2026-10",
       "count": 11,

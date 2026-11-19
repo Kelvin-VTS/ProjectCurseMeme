@@ -2,6 +2,26 @@
   "version": 1,
   "monthly": [
     {
+      "key": "2026-11",
+      "label": "2026年11月",
+      "items": [
+        {
+          "id": "5542f0759022",
+          "kind": "image",
+          "date": "2026-11-19",
+          "month": "2026-11",
+          "thumb": "media/2026-11/5542f0759022.thumb.webp",
+          "width": 1143,
+          "height": 774,
+          "likes": 0,
+          "contributor": {
+            "login": "Kelvin-VTS",
+            "avatar": "https://github.com/Kelvin-VTS.png"
+          }
+        }
+      ]
+    },
+    {
       "key": "2026-10",
       "label": "2026年10月",
       "items": [
